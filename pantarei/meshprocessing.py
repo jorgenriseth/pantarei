@@ -4,7 +4,7 @@ import os
 import glob
 import SVMTK as svmtk
 from dolfin import Mesh, MeshFunction, XDMFFile, HDF5File, MeshValueCollection
-from .flowproblem import Domain
+from pantarei.domain import Domain
 from .config import DEFAULT_TMPDIR
 from pathlib import *
 

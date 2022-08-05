@@ -1,6 +1,15 @@
-from dolfin import (TrialFunction, TestFunction, Function, DirichletBC,
-                    Measure, Constant)
-from dolfin import project, solve, dx, assemble
+from dolfin import (
+    Constant,
+    DirichletBC,
+    Function,
+    Measure,
+    TestFunction,
+    TrialFunction,
+    assemble,
+    dx,
+    project,
+    solve,
+)
 
 
 class BaseProjector:
@@ -28,16 +37,16 @@ class DirichletProjector(BaseProjector):
 
 class HomogeneousDirichletProjector(DirichletProjector):
     def __init__(self):
-        super().__init__(Constant(0.))
+        super().__init__(Constant(0.0))
 
 
 class AveragingDirichletProjector(DirichletProjector):
     def __init__(self):
-        super().__init__(Constant(0.))
+        super().__init__(Constant(0.0))
 
     def project(self, u0, V):
-        ds = Measure('ds', domain=V.mesh())
-        surface_area = assemble(1. * ds)
+        ds = Measure("ds", domain=V.mesh())
+        surface_area = assemble(1.0 * ds)
         self.uD = assemble(u0 * ds) / surface_area
         return super().project(u0, V)
 

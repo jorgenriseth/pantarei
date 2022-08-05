@@ -1,1 +1,1 @@
-DEFAULT_TMPDIR="/tmp/skallaflow/"
+DEFAULT_TMPDIR = "/tmp/pantarei/"

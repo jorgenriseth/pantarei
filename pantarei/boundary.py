@@ -1,12 +1,15 @@
+from abc import ABC, abstractmethod
+from typing import Union
+
+from dolfin import FacetNormal, Measure, TestFunction
 from fenics import DirichletBC
 from ufl import inner
-from abc import ABC, abstractmethod
-from dolfin import TestFunction, FacetNormal, Measure
-from typing import Union
 
 
 class BoundaryData(ABC):
-    def __init__(self, condition_type: str, idx: Union[int, str], boundary_name: str = None):
+    def __init__(
+        self, condition_type: str, idx: Union[int, str], boundary_name: str = None
+    ):
         self.type = condition_type
         self.idx = idx
         if boundary_name is None:
@@ -52,8 +55,18 @@ class TractionBoundary(VariationalBoundary):
 
 
 def process_dirichlet(domain, space, boundaries):
-    return [bc.process(domain, space) for bc in boundaries if isinstance(bc, DirichletBoundary)]
+    return [
+        bc.process(domain, space)
+        for bc in boundaries
+        if isinstance(bc, DirichletBoundary)
+    ]
 
 
 def process_boundary_forms(domain, space, boundaries):
-    return sum([bc.process(domain, space) for bc in boundaries if isinstance(bc, VariationalBoundary)])
+    return sum(
+        [
+            bc.process(domain, space)
+            for bc in boundaries
+            if isinstance(bc, VariationalBoundary)
+        ]
+    )

@@ -1,12 +1,15 @@
 #!/usr/bin/env python
-import meshio
-import os
 import glob
+import os
+from pathlib import Path
+
+import meshio
 import SVMTK as svmtk
-from dolfin import Mesh, MeshFunction, XDMFFile, HDF5File, MeshValueCollection
+from dolfin import HDF5File, Mesh, MeshFunction, MeshValueCollection, XDMFFile
+
 from pantarei.domain import Domain
+
 from .config import DEFAULT_TMPDIR
-from pathlib import *
 
 # TODO: Change all conversions to output the path to resulting files, and create single unified function for conversion.
 
@@ -16,7 +19,7 @@ def prune_z_0(mesh):
 
 
 def clean_tmp(directory, suffix, no_output=False):
-    """ Delete the given directory, with content."""
+    """Delete the given directory, with content."""
     dirpath = Path(directory)
     for f in glob.glob(f"{dirpath}/*{suffix}"):
         os.remove(f)
@@ -29,10 +32,14 @@ def clean_tmp(directory, suffix, no_output=False):
         print(f"{dirpath} not empty, and will not be removed.")
 
 
-def stl2mesh(stlfiles, meshfile_out, resolution, subdomain_map=None, remove_subdomains=None):
+def stl2mesh(
+    stlfiles, meshfile_out, resolution, subdomain_map=None, remove_subdomains=None
+):
     """Creates an svmtk-domain from a set of stl-files, and stores as a meshio .mesh-file. May optionally remove
     sepecifc subdomains, or add subdomain markers."""
-    assert type(stlfiles) == list, "stlfiles should be list. (single surface may be wrapped as length 1 list)."
+    assert (
+        type(stlfiles) == list
+    ), "stlfiles should be list. (single surface may be wrapped as length 1 list)."
     stlfiles = list(stlfiles)
     surfaces = [svmtk.Surface(str(stl)) for stl in stlfiles]
     if subdomain_map is not None:
@@ -50,7 +57,7 @@ def geo2mesh(infile, outfile, dim=2):
 
 
 def meshfunction_default_value(meshfunction, value: int = 0):
-    """ Sets the default value for a MeshFunctionSize_t created from a
+    """Sets the default value for a MeshFunctionSize_t created from a
     MeshValueCollection"""
     for idx, value in enumerate(meshfunction.array() + 1):
         if value == 0:
@@ -75,10 +82,8 @@ def mesh2xdmf(meshfile, xdmfdir, dim=2):
     points = mesh.points
     polytopes = {polytope_label: mesh.cells_dict[polytope_label]}
     facets = {facet_label: mesh.cells_dict[facet_label]}
-    subdomains = {"subdomains": [
-        mesh.cell_data_dict["medit:ref"][polytope_label]]}
-    boundaries = {"boundaries": [
-        mesh.cell_data_dict["medit:ref"][facet_label]]}
+    subdomains = {"subdomains": [mesh.cell_data_dict["medit:ref"][polytope_label]]}
+    boundaries = {"boundaries": [mesh.cell_data_dict["medit:ref"][facet_label]]}
 
     # Write the mesh into new xdmf file
     meshdata = meshio.Mesh(points, polytopes)
@@ -107,7 +112,7 @@ def xdmf2hdf(xdmfdir, hdf5file):
         subdomainfile.read(subdomains, "subdomains")
 
     # Read face data into a Meshfunction of dim n-1
-    bdrycollection = MeshValueCollection("size_t", mesh, n-1)
+    bdrycollection = MeshValueCollection("size_t", mesh, n - 1)
     with XDMFFile(str(dirpath / "boundaries.xdmf")) as boundaryfile:
         boundaryfile.read(bdrycollection, "boundaries")
     boundaries = MeshFunction("size_t", mesh, bdrycollection)
@@ -121,7 +126,7 @@ def xdmf2hdf(xdmfdir, hdf5file):
 
 
 def geo2hdf(infile, outfile, dim=2, tmpdir=DEFAULT_TMPDIR, clean=True):
-    """ Single file for creating h5-file from gmsh .geo file."""
+    """Single file for creating h5-file from gmsh .geo file."""
     # Create tmpdir
     inpath = Path(infile)
     tmppath = inpath.parent / tmpdir
@@ -141,14 +146,28 @@ def geo2hdf(infile, outfile, dim=2, tmpdir=DEFAULT_TMPDIR, clean=True):
     return outfile
 
 
-def stl2hdf(stlfiles, outfile, resolution, subdomain_map=None, remove_subdomains=None, tmpdir=DEFAULT_TMPDIR):
+def stl2hdf(
+    stlfiles,
+    outfile,
+    resolution,
+    subdomain_map=None,
+    remove_subdomains=None,
+    tmpdir=DEFAULT_TMPDIR,
+):
     tmppath = create_tmpdir(tmpdir)
     if tmppath != DEFAULT_TMPDIR:
         print("Intermediate files stored in: ", tmppath)
 
-    stl2mesh(stlfiles, tmppath / 'meshfile.mesh', resolution, subdomain_map=subdomain_map,
-             remove_subdomains=remove_subdomains)
-    mesh2hdf(tmppath / 'meshfile.mesh', outfile, dim=3, tmpdir=tmpdir)  # Dont think stls will be relevant in 2-dim case
+    stl2mesh(
+        stlfiles,
+        tmppath / "meshfile.mesh",
+        resolution,
+        subdomain_map=subdomain_map,
+        remove_subdomains=remove_subdomains,
+    )
+    mesh2hdf(
+        tmppath / "meshfile.mesh", outfile, dim=3, tmpdir=tmpdir
+    )  # Dont think stls will be relevant in 2-dim case
 
     if tmpdir == DEFAULT_TMPDIR:
         clean_tmp(tmppath, "meshfile.mesh")
@@ -181,15 +200,15 @@ def mesh2hdf(infile, outfile, dim, tmpdir=DEFAULT_TMPDIR):
 
 
 def hdf2fenics(hdf5file, pack=False):
-    """ Function to read h5-file with annotated mesh, subdomains
-    and boundaries into fenics mesh """
+    """Function to read h5-file with annotated mesh, subdomains
+    and boundaries into fenics mesh"""
     mesh = Mesh()
     with HDF5File(mesh.mpi_comm(), str(hdf5file), "r") as hdf:
         hdf.read(mesh, "/mesh", False)
         n = mesh.topology().dim()
         subdomains = MeshFunction("size_t", mesh, n)
         hdf.read(subdomains, "/subdomains")
-        boundaries = MeshFunction("size_t", mesh, n-1)
+        boundaries = MeshFunction("size_t", mesh, n - 1)
         hdf.read(boundaries, "/boundaries")
 
     if pack:

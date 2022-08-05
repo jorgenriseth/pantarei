@@ -1,1 +1,1 @@
-from timeseriesstorage import TimeSeriesStorage
+from pantarei.io.timeseriesstorage import TimeSeriesStorage

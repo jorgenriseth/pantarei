@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "pantarei"
+version = "0.1.0"
+description = "Various utility functions for use of fluid flow simulations and other fenics-based projects."
+authors = ["jorgenriseth <jnriseth@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.7"
+SVMTK = { git = "https://github.com/jorgenriseth/SVMTK.git" }
+meshio = "^5.3.4"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

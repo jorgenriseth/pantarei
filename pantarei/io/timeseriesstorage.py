@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Tuple, Union
 
 import numpy as np
-from dolfin import Function, FunctionSpace, HDF5File, Mesh, XDMFFile
+from dolfin import Function, FunctionSpace, HDF5File, Mesh, XDMFFile, File
 
 
 class TimeSeriesStorage:
@@ -106,6 +106,7 @@ class TimeSeriesStorage:
         return times, el
 
     def close(self):
+        
         if hasattr(self, "hdf5"):
             self.hdf5.close()
         if hasattr(self, "xdmf"):
@@ -138,6 +139,15 @@ class TimeSeriesStorage:
         for xdmf in xdmfs.values():
             xdmf.close()
 
+    def to_pvd(self, names: Union[str, Tuple[str]]):
+        pvds = {
+            name: File(
+                self.mesh.mpi_comm(), str(self.filepath / "{}/{}.pvd".format(name, name))
+            )
+            for name in flat(names)
+        }
+        for ti, ui in self.dual_iter():
+            write_to_pvd(pvds, ti, ui, names)
 
 def write_to_xdmf(xdmfs, t, u, names):
     if type(names) == str:
@@ -146,6 +156,15 @@ def write_to_xdmf(xdmfs, t, u, names):
     else:
         for uj, name in zip(u.split(deepcopy=True), names):
             write_to_xdmf(xdmfs, t, uj, name)
+
+
+def write_to_pvd(pvds, t, u, names):
+    if type(names) == str:
+        u.rename(names, "")
+        pvds[names] << (u, t)
+    else:
+        for uj, name in zip(u.split(deepcopy=True), names):
+            write_to_xdmf(pvds, t, uj, name)
 
 
 def flat(pool):

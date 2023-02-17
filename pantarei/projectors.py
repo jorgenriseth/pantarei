@@ -2,14 +2,16 @@ from dolfin import (
     Constant,
     DirichletBC,
     Function,
+    FunctionSpace,
     Measure,
     TestFunction,
     TrialFunction,
     assemble,
-    dx,
+    dx,  # type: ignore
     project,
     solve,
 )
+from ufl import Coefficient
 
 
 class BaseProjector:
@@ -21,12 +23,12 @@ class DirichletProjector(BaseProjector):
     def __init__(self, uD):
         self.uD = uD
 
-    def project(self, u0, V):
+    def project(self, u0: Coefficient, V: FunctionSpace):
         # Project u0 to have Dirichlet boundary equal to g0.
         u = TrialFunction(V)
         v = TestFunction(V)
-        a0 = u * v * dx
-        L0 = u0 * v * dx
+        a0 = u * v * dx  # type: ignore
+        L0 = u0 * v * dx  # type: ignore
         u1 = Function(V)
         A = assemble(a0)
         b = assemble(L0)
@@ -56,12 +58,13 @@ class NeumannProjector(BaseProjector):
         self.uN = uN
         super().__init__()
 
-    def project(self, u0, V):
+    def project(self, u0: Coefficient, V: FunctionSpace):
         # Project u0 to have Dirichlet boundary equal to g0.
+        dx = Measure("dx", domain=V.mesh())
         u = TrialFunction(V)
         v = TestFunction(V)
-        a0 = u * v * dx
-        L0 = u0 * v * dx
+        a0 = u * v * dx  # type: ignore (Argument * Argument is most def. allowed.)
+        L0 = u0 * v * dx  # type: ignore (Coefficient * Argument, same.)
         u0 = Function(V)
         solve(a0 == L0, u0)
         return u0

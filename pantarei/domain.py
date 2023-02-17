@@ -1,15 +1,13 @@
-from dataclasses import dataclass
+from dolfin import Mesh, MeshFunction
 
-from dolfin import Mesh
-from dolfin.cpp.mesh import MeshFunctionSizet
+class Domain(Mesh):
+    def __init__(self, mesh: Mesh, subdomains: MeshFunction, boundaries: MeshFunction):
+        super().__init__(mesh)
+        self.subdomains = transfer_meshfunction(self, subdomains)
+        self.boundaries = transfer_meshfunction(self, boundaries)
+        
 
-
-@dataclass
-class Domain:
-    mesh: Mesh
-    subdomains: MeshFunctionSizet
-    boundaries: MeshFunctionSizet
-
-
-def unpack_domain(domain: Domain):
-    return domain.mesh, domain.subdomains, domain.boundaries
+def transfer_meshfunction(newmesh: Mesh, meshfunc: MeshFunction) -> MeshFunction:
+    newtags = MeshFunction("size_t", newmesh, dim=meshfunc.dim())  # type: ignore
+    newtags.set_values(meshfunc)  # type: ignore
+    return newtags

@@ -59,9 +59,9 @@ def geo2mesh(infile, outfile, dim=2):
 def meshfunction_default_value(meshfunction, value: int = 0):
     """Sets the default value for a MeshFunctionSize_t created from a
     MeshValueCollection"""
-    for idx, value in enumerate(meshfunction.array() + 1):
-        if value == 0:
-            meshfunction[idx] = 0
+    for idx, val in enumerate(meshfunction.array() + 1):
+        if val == 0:
+            meshfunction[idx] = value
     return meshfunction
 
 

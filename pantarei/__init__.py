@@ -1,1 +1,4 @@
-__version__ = "0.1.0"
+#ignorethisfile
+import pantarei.mms as mms
+import pantarei.forms as forms
+import pantarei.timekeeper as timekeeper

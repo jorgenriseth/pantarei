@@ -18,28 +18,20 @@ class TimeSeriesStorage:
         self.filepath = Path(filepath).resolve()
         self.mode = mode
         if mode == "w":
-            assert (
-                mesh is not None and V is not None
-            ), 'mode "w" requires a mesh and functionspace V.'
+            assert mesh is not None and V is not None, 'mode "w" requires a mesh and functionspace V.'
             self._init_write(mesh, V)
         elif mode == "r":
             self._init_read()
         else:
-            raise ValueError(
-                f"Invalid mode '{mode}'. Shold be 'w' (write) or 'r' (read)."
-            )
+            raise ValueError(f"Invalid mode '{mode}'. Shold be 'w' (write) or 'r' (read).")
 
     def _init_write(self, mesh, V):
         self.mesh = mesh
         self.V = V
-
-        # Create directory, value-file and xdmf file for paraview visualization.
         self.filepath.mkdir(exist_ok=True)
 
-        hdffile, xdmffile, infofile = (
-            self.filepath / file for file in ("values.hdf5", "visual.xdmf", "info.pkl")
-        )
-        for file in (hdffile, xdmffile, infofile):
+        hdffile, infofile = (self.filepath / file for file in ("values.hdf5", "info.pkl"))
+        for file in (hdffile, infofile):
             if file.exists():
                 os.remove(file)
 
@@ -62,9 +54,7 @@ class TimeSeriesStorage:
             f.read(self.mesh, "/mesh", True)
 
         # Open file to read values
-        self.hdf5 = HDF5File(
-            self.mesh.mpi_comm(), str(self.filepath / f"values.hdf5"), "r"
-        )
+        self.hdf5 = HDF5File(self.mesh.mpi_comm(), str(self.filepath / f"values.hdf5"), "r")
 
         # Reconstruct functionspace, and create function to load values.
         self.times, el = self.load_info()
@@ -106,11 +96,8 @@ class TimeSeriesStorage:
         return times, el
 
     def close(self):
-        
         if hasattr(self, "hdf5"):
             self.hdf5.close()
-        if hasattr(self, "xdmf"):
-            self.xdmf.close()
         if self.mode == "w":
             self.store_info()
 
@@ -129,9 +116,7 @@ class TimeSeriesStorage:
 
     def to_xdmf(self, names: Union[str, Tuple[str]]):
         xdmfs = {
-            name: XDMFFile(
-                self.mesh.mpi_comm(), str(self.filepath / "visual_{}.xdmf".format(name))
-            )
+            name: XDMFFile(self.mesh.mpi_comm(), str(self.filepath / "visual_{}.xdmf".format(name)))
             for name in flat(names)
         }
         for ti, ui in self.dual_iter():
@@ -141,13 +126,12 @@ class TimeSeriesStorage:
 
     def to_pvd(self, names: Union[str, Tuple[str]]):
         pvds = {
-            name: File(
-                self.mesh.mpi_comm(), str(self.filepath / "{}/{}.pvd".format(name, name))
-            )
+            name: File(self.mesh.mpi_comm(), str(self.filepath / "{}/{}.pvd".format(name, name)))
             for name in flat(names)
         }
         for ti, ui in self.dual_iter():
             write_to_pvd(pvds, ti, ui, names)
+
 
 def write_to_xdmf(xdmfs, t, u, names):
     if type(names) == str:
@@ -161,7 +145,7 @@ def write_to_xdmf(xdmfs, t, u, names):
 def write_to_pvd(pvds, t, u, names):
     if type(names) == str:
         u.rename(names, "")
-        pvds[names] << (u, t)
+        pvds[names] << (u, t)  # type: ignore
     else:
         for uj, name in zip(u.split(deepcopy=True), names):
             write_to_xdmf(pvds, t, uj, name)

@@ -164,3 +164,4 @@ cython_debug/
 .idea/pantarei.iml
 .idea/vcs.xml
 .idea/inspectionProfiles/profiles_settings.xml
+.vscode/settings.json

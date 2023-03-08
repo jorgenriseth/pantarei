@@ -18,10 +18,11 @@ class FenicsStorage:
         self.mode = mode
         if mode == "w":
             self.filepath.parent.mkdir(exist_ok=True, parents=True)
-            # FIXME: May cause problems with parallell
-            if self.filepath.exists():
-                logger.info(f"Replacing existing file {self.filepath}")
-                os.remove(self.filepath)
+            # TODO: Test if this works with multiple processes.
+            # if self.filepath.exists() and df.MPI.comm_world.rank == 0:
+            #     logger.info(f"Replacing existing file {self.filepath}")
+            #     os.remove(self.filepath)
+            df.MPI.comm_world.barrier()
         self.hdf = df.HDF5File(df.MPI.comm_world, str(self.filepath), mode)
 
 
@@ -30,6 +31,7 @@ class FenicsStorage:
         if isinstance(domain, Domain):
             self.hdf.write(domain.subdomains, "/domain/subdomains")
             self.hdf.write(domain.boundaries, "/domain/boundaries")
+
 
     def read_domain(self):
         mesh = df.Mesh(df.MPI.comm_world)
@@ -48,25 +50,25 @@ class FenicsStorage:
         petsc_signature = encode_signature(signature)
         self.hdf.write(petsc_signature, f"{function.name()}/element")
 
-    def read_element(self, function_name, mpi_wrapper):
+    def read_element(self, function_name):
         petsc_signature = df.Vector(df.MPI.comm_self)
         self.hdf.read(petsc_signature, f"{function_name}/element", False)
         signature = decode_signature(petsc_signature)
         return read_signature(signature)
 
-    def write_function(self, function):
+    def write_function(self, function, idx: int = 0):
         if not self.hdf.has_dataset("/domain"):
             self.write_domain(function.function_space().mesh())
         self.write_function_element(function)
-        self.hdf.write(function.vector(), f"{function.name()}/vector_{0}")
+        self.hdf.write(function, f"{function.name()}/vector_{idx}")
 
     def read_function(self, name, domain=None):
         if domain is None:
             domain = self.read_domain()
-        element = self.read_element(name, domain.mpi_comm())
+        element = self.read_element(name)
         V = df.FunctionSpace(domain, element)
         u = df.Function(V, name=name)
-        self.hdf.read(u.vector(), f"{name}/vector_{0}", False)
+        self.hdf.read(u, f"{name}/vector_{0}")
         return u
 
     def write_checkpoint(self, function, idx):
@@ -89,14 +91,17 @@ class FenicsStorage:
 
     def read_timevector(self, function_name=None):
         if function_name is None:
-            timevector = df.Vector()
+            timevector = df.Vector(df.MPI.comm_self)
             self.hdf.read(timevector, "/timevector", False)
         else:
-            timevector = df.Vector()
+            timevector = df.Vector(df.MPI.comm_self)
             self.hdf.read(timevector, f"{function_name}/timevector", False)
         return timevector[:]
 
     def close(self):
+        logger.info(f"Process {df.MPI.comm_world.rank} waiting for other\
+                    processes before closing file.")
+        df.MPI.comm_world.barrier()
         self.hdf.close()
 
 

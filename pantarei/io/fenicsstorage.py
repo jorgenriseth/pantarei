@@ -11,27 +11,23 @@ import ufl
 from pantarei.domain import Domain
 
 logger = logging.getLogger(__name__)
+StrPath = Union[str, Path]
+
 
 class FenicsStorage:
-    def __init__(self, filepath: Union[str, Path], mode: str):
+    def __init__(self, filepath: StrPath, mode: str):
         self.filepath = Path(filepath).resolve()
         self.mode = mode
-        if mode == "w":
+        if mode == "w" or mode == "a":
             self.filepath.parent.mkdir(exist_ok=True, parents=True)
-            # TODO: Test if this works with multiple processes.
-            # if self.filepath.exists() and df.MPI.comm_world.rank == 0:
-            #     logger.info(f"Replacing existing file {self.filepath}")
-            #     os.remove(self.filepath)
             df.MPI.comm_world.barrier()
         self.hdf = df.HDF5File(df.MPI.comm_world, str(self.filepath), mode)
-
 
     def write_domain(self, domain: df.Mesh):
         self.hdf.write(domain, "/domain/mesh")
         if isinstance(domain, Domain):
             self.hdf.write(domain.subdomains, "/domain/subdomains")
             self.hdf.write(domain.boundaries, "/domain/boundaries")
-
 
     def read_domain(self):
         mesh = df.Mesh(df.MPI.comm_world)
@@ -45,22 +41,14 @@ class FenicsStorage:
             self.hdf.read(boundaries, "/domain/boundaries")
         return Domain(mesh, subdomains, boundaries)
 
-    def write_function_element(self, function):
-        signature = function.function_space().element().signature()
-        petsc_signature = encode_signature(signature)
-        self.hdf.write(petsc_signature, f"{function.name()}/element")
-
     def read_element(self, function_name):
-        petsc_signature = df.Vector(df.MPI.comm_self)
-        self.hdf.read(petsc_signature, f"{function_name}/element", False)
-        signature = decode_signature(petsc_signature)
+        signature = self.hdf.attributes(function_name)["signature"]
         return read_signature(signature)
 
-    def write_function(self, function, idx: int = 0):
+    def write_function(self, function):
         if not self.hdf.has_dataset("/domain"):
             self.write_domain(function.function_space().mesh())
-        self.write_function_element(function)
-        self.hdf.write(function, f"{function.name()}/vector_{idx}")
+        self.hdf.write(function, f"{function.name()}")
 
     def read_function(self, name, domain=None):
         if domain is None:
@@ -71,48 +59,31 @@ class FenicsStorage:
         self.hdf.read(u, f"{name}/vector_{0}")
         return u
 
-    def write_checkpoint(self, function, idx):
-        if idx == 0:
-            self.write_function(function)
-        else:
-            self.hdf.write(function.vector(), f"{function.name()}/vector_{idx}")
+    def write_checkpoint(self, function: df.Function, name: str, t: float):
+        self.hdf.write(function, name, t)
 
-    def read_checkpoint(self, u, idx):
-        self.hdf.read(u.vector(), f"{u.name()}/vector_{idx}", False)
+    def read_checkpoint(self, u: df.Function, name: str, idx: int):
+        self.hdf.read(u, f"{name}/vector_{idx}")
         return u
 
-    def write_timevector(self, timevector, function_name=None):
-        vec = df.Vector(df.MPI.comm_self, timevector.size)
-        vec[:] = timevector
-        if function_name is None:
-            self.hdf.write(vec, "/timevector")
-        else:
-            self.hdf.write(vec, f"{function_name}/timevector")
+    def read_checkpoint_time(self, name: str, idx: int):
+        return self.hdf.attributes(f"{name}/vector_{idx}")["timestamp"]
 
-    def read_timevector(self, function_name=None):
-        if function_name is None:
-            timevector = df.Vector(df.MPI.comm_self)
-            self.hdf.read(timevector, "/timevector", False)
-        else:
-            timevector = df.Vector(df.MPI.comm_self)
-            self.hdf.read(timevector, f"{function_name}/timevector", False)
-        return timevector[:]
+    def read_timevector(self, function_name):
+        num_entries = self.hdf.attributes("/timevector")["count"]
+        time = np.zeros(num_entries)
+        for i in range(num_entries):
+            time[i] = self.read_checkpoint_time(function_name, i)
+        return time
 
     def close(self):
-        logger.info(f"Process {df.MPI.comm_world.rank} waiting for other\
-                    processes before closing file.")
+        logger.info(
+            f"Process {df.MPI.comm_world.rank} waiting for other\
+                    processes before closing file."
+        )
         df.MPI.comm_world.barrier()
         self.hdf.close()
 
-
-def encode_signature(signature: str):
-    arr = np.array(bytearray(signature.encode()))
-    petv = df.Vector(df.MPI.comm_self, arr.size)
-    petv[:] = arr
-    return petv
-
-def decode_signature(petv: df.Vector):
-    return bytearray(petv[:].astype(np.uint8)).decode()
 
 def read_signature(signature):
     # Imported here since the signature require functions without namespace
@@ -120,14 +91,3 @@ def read_signature(signature):
     from dolfin import MixedElement, FiniteElement, VectorElement, TensorElement
     from dolfin import interval, triangle, tetrahedron, quadrilateral, hexahedron
     return eval(signature)
-
-
-def signature_to_element(signature: str) -> df.FiniteElement:
-    # Write a fucntion
-    match = re.match(r"FiniteElement\('([a-zA-Z ]+)', ([a-z]+), (\d)\)", signature)
-    if match is None:
-        raise ValueError(f"Could not parse signature {signature}")
-    element_family, cell_type, degree = match.groups()
-    cell = ufl.Cell(cell_type)
-    return df.FiniteElement(element_family, cell, int(degree))
-

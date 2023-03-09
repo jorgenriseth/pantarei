@@ -2,7 +2,7 @@ import os
 import dolfin as df
 import logging
 import re
-from typing import Union
+from typing import Union, List
 from pathlib import Path
 
 import numpy as np
@@ -45,10 +45,10 @@ class FenicsStorage:
         signature = self.hdf.attributes(function_name)["signature"]
         return read_signature(signature)
 
-    def write_function(self, function):
+    def write_function(self, function: df.Function, name: str):
         if not self.hdf.has_dataset("/domain"):
             self.write_domain(function.function_space().mesh())
-        self.hdf.write(function, f"{function.name()}")
+        self.hdf.write(function, f"{name}", 0.0)
 
     def read_function(self, name, domain=None):
         if domain is None:
@@ -66,11 +66,11 @@ class FenicsStorage:
         self.hdf.read(u, f"{name}/vector_{idx}")
         return u
 
-    def read_checkpoint_time(self, name: str, idx: int):
+    def read_checkpoint_time(self, name: str, idx: int) -> float:
         return self.hdf.attributes(f"{name}/vector_{idx}")["timestamp"]
 
-    def read_timevector(self, function_name):
-        num_entries = self.hdf.attributes("/timevector")["count"]
+    def read_timevector(self, function_name: str) -> np.ndarray:
+        num_entries = self.hdf.attributes(function_name)["count"]
         time = np.zeros(num_entries)
         for i in range(num_entries):
             time[i] = self.read_checkpoint_time(function_name, i)
@@ -84,6 +84,19 @@ class FenicsStorage:
         df.MPI.comm_world.barrier()
         self.hdf.close()
 
+    def to_xdmf(self, funcname: str, subnames: Union[str, List[str]]):
+        """FIXME: Rewrite as external function taking in a FenicsStorage object."""
+        xdmfs = {
+            name: df.XDMFFile(df.MPI.comm_world, str(self.filepath.parent / "visual_{}.xdmf".format(name)))
+            for name in flat(subnames)
+        }
+        times = self.read_timevector(funcname)
+        ui = self.read_function(funcname)
+        for idx, ti in enumerate(times):
+            ui = self.read_checkpoint(ui, funcname, idx)
+            write_to_xdmf(xdmfs, ui, ti, subnames)
+        for xdmf in xdmfs.values():
+            xdmf.close()
 
 def read_signature(signature):
     # Imported here since the signature require functions without namespace
@@ -91,3 +104,23 @@ def read_signature(signature):
     from dolfin import MixedElement, FiniteElement, VectorElement, TensorElement
     from dolfin import interval, triangle, tetrahedron, quadrilateral, hexahedron
     return eval(signature)
+
+def write_to_xdmf(xdmfs, u, t, names):
+    if isinstance(names, str):
+        u.rename(names, "")
+        xdmfs[names].write(u, t)
+    else:
+        for uj, name in zip(u.split(deepcopy=True), names):
+            write_to_xdmf(xdmfs, uj, t, name)
+
+
+def flat(pool):
+    if isinstance(pool, str):
+        return [pool]
+    res = []
+    for v in pool:
+        if isinstance(v, str):
+            res.append(v)
+        else:
+            res += flat(v)
+    return res

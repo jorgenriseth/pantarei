@@ -17,9 +17,9 @@ from dolfin import (
     UnitCubeMesh,
     UnitIntervalMesh,
     UnitSquareMesh,
-    inner,
     div,
     grad,
+    inner,
 )
 from ufl import Coefficient
 
@@ -45,17 +45,29 @@ class MMSDomain(Domain):
             3: CompiledSubDomain("near(x[1], -1) && on_boundary"),
             4: CompiledSubDomain("near(x[1], 1) && on_boundary"),
         }
-        normals = {1: Constant((-1, 0)), 2: Constant((1, 0)), 3: Constant((0, -1)), 4: Constant((0, 1))}
+        normals = {
+            1: Constant((-1, 0)),
+            2: Constant((1, 0)),
+            3: Constant((0, -1)),
+            4: Constant((0, 1)),
+        }
 
-        mesh = RectangleMesh(Point(-1, -1), Point(1, 1), N, N, diagonal="crossed")
-        subdomain_tags = mark_subdomains(subdomains, mesh, 0)
+        mesh = RectangleMesh(
+            Point(-1, -1), Point(1, 1), N, N, diagonal="crossed"
+        )
+        subdomain_tags = mark_subdomains(subdomains, mesh, 0, default_value=1)
         boundary_tags = mark_subdomains(subboundaries, mesh, 1)
 
         super().__init__(mesh, subdomain_tags, boundary_tags)
         self.normals: Dict[int, Constant] = normals
 
 
-def mark_subdomains(subdomains: Dict[int, CompiledSubDomain], mesh: Mesh, codim: int, default_value: int = 0):
+def mark_subdomains(
+    subdomains: Dict[int, CompiledSubDomain],
+    mesh: Mesh,
+    codim: int,
+    default_value: int = 0,
+):
     dim = mesh.topology().dim() - codim
     subdomain_tags = MeshFunction("size_t", mesh, dim=dim, value=default_value)
     for tag, subd in subdomains.items():
@@ -79,35 +91,47 @@ def mms_placeholder(dim: int):
 class MMSModelSystem(ABC):
     @staticmethod
     @abstractmethod
-    def strong_form(u: Coefficient, coefficients: Dict[str, Coefficient], **kwargs) -> Coefficient:
+    def strong_form(
+        u: Coefficient, coefficients: Dict[str, Coefficient], **kwargs
+    ) -> Coefficient:
         pass
 
     @staticmethod
     @abstractmethod
-    def flux_density(u: Coefficient, coefficients: Dict[str, Coefficient], **kwargs) -> Coefficient:
+    def flux_density(
+        u: Coefficient, coefficients: Dict[str, Coefficient], **kwargs
+    ) -> Coefficient:
         pass
 
 
 class PoissonModelSystem(MMSModelSystem):
     @staticmethod
-    def strong_form(u: Coefficient, coefficients: Dict[str, Coefficient], **kwargs) -> Coefficient:
+    def strong_form(
+        u: Coefficient, coefficients: Dict[str, Coefficient], **kwargs
+    ) -> Coefficient:
         D = coefficients["D"]
         return div(-D * grad(u))  # type: ignore
 
     @staticmethod
-    def flux_density(u: Coefficient, coefficients: Dict[str, Coefficient], **kwargs) -> Coefficient:
+    def flux_density(
+        u: Coefficient, coefficients: Dict[str, Coefficient], **kwargs
+    ) -> Coefficient:
         D = coefficients["D"]
         return -D * grad(u)  # type: ignore
 
 
 class DiffusionModelSystem(MMSModelSystem):
     @staticmethod
-    def strong_form(u: Coefficient, coefficients: Dict[str, Coefficient], dudt: Coefficient) -> Coefficient:
+    def strong_form(
+        u: Coefficient, coefficients: Dict[str, Coefficient], dudt: Coefficient
+    ) -> Coefficient:
         D = coefficients["D"]
         return dudt + div(-D * grad(u))  # type: ignore
 
     @staticmethod
-    def flux_density(u: Coefficient, coefficients: Dict[str, Coefficient], **kwargs) -> Coefficient:
+    def flux_density(
+        u: Coefficient, coefficients: Dict[str, Coefficient], **kwargs
+    ) -> Coefficient:
         D = coefficients["D"]
         return -D * grad(u)  # type: ignore
 
@@ -167,10 +191,14 @@ class MMSRobinBoundary(MMSBoundaryBase):
         super().__init__(tag)
         self.a = transfer_coefficient
 
-    def get(self, u, system, normals, coefficients, subs, degree, time) -> BoundaryData:
+    def get(
+        self, u, system, normals, coefficients, subs, degree, time
+    ) -> BoundaryData:
         n = normals[self.tag]
         Fu = system.flux_density(u, coefficients)
-        g = ulfy.Expression(u - inner(Fu, n) / self.a, subs=subs, degree=degree, t=time)
+        g = ulfy.Expression(
+            u - inner(Fu, n) / self.a, subs=subs, degree=degree, t=time
+        )
         return RobinBoundary(self.a, g, self.tag)
 
 
@@ -199,8 +227,16 @@ def setup_mms_coefficients(
     t = sp.symbols("t")
     subs = {u: u_sympy, dudt: sp.diff(u_sympy, t)}
 
-    source = ulfy.Expression(system.strong_form(u, coefficients, dudt=dudt), subs=subs, degree=degree, t=time)
+    source = ulfy.Expression(
+        system.strong_form(u, coefficients, dudt=dudt),
+        subs=subs,
+        degree=degree,
+        t=time,
+    )
     boundary_data = [
-        boundary.get(u, system, domain.normals, coefficients, subs, degree, time=time) for boundary in boundaries
+        boundary.get(
+            u, system, domain.normals, coefficients, subs, degree, time=time
+        )
+        for boundary in boundaries
     ]
     return MMSModelCoefficients(source, boundary_data)

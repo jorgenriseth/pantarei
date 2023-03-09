@@ -1,3 +1,4 @@
+from dolfin import dx  # type: ignore
 from dolfin import (
     Constant,
     DirichletBC,
@@ -7,7 +8,6 @@ from dolfin import (
     TestFunction,
     TrialFunction,
     assemble,
-    dx,  # type: ignore
     project,
     solve,
 )

@@ -33,7 +33,11 @@ def clean_tmp(directory, suffix, no_output=False):
 
 
 def stl2mesh(
-    stlfiles, meshfile_out, resolution, subdomain_map=None, remove_subdomains=None
+    stlfiles,
+    meshfile_out,
+    resolution,
+    subdomain_map=None,
+    remove_subdomains=None,
 ):
     """Creates an svmtk-domain from a set of stl-files, and stores as a meshio .mesh-file. May optionally remove
     sepecifc subdomains, or add subdomain markers."""
@@ -82,7 +86,9 @@ def mesh2xdmf(meshfile, xdmfdir, dim=2):
     points = mesh.points
     polytopes = {polytope_label: mesh.cells_dict[polytope_label]}
     facets = {facet_label: mesh.cells_dict[facet_label]}
-    subdomains = {"subdomains": [mesh.cell_data_dict["medit:ref"][polytope_label]]}
+    subdomains = {
+        "subdomains": [mesh.cell_data_dict["medit:ref"][polytope_label]]
+    }
     boundaries = {"boundaries": [mesh.cell_data_dict["medit:ref"][facet_label]]}
 
     # Write the mesh into new xdmf file

@@ -1,9 +1,10 @@
+from dolfin import Function
 from numpy import zeros
 
-from dolfin import Function
 
 class BaseComputer:
     """Class to perform basic computations during simulation of diffusion equation."""
+
     def __init__(self, function_dict):
         self.functions = function_dict
         self.initiated = False
@@ -13,7 +14,6 @@ class BaseComputer:
     #     self.initiate = True
     #     self._create_value_dict(time)
     #     self.compute(time, u)
-
 
     def _create_value_dict(self, timekeeper):
         self.initiated = True

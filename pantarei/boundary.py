@@ -1,10 +1,10 @@
 from abc import ABC, abstractmethod
-from typing import Dict, Union, List
+from typing import Dict, List, Union
 
 import dolfin as df
 from dolfin import DirichletBC, Form, FunctionSpace, Measure, Mesh
 from dolfin.function.argument import Argument
-from ufl import inner, Coefficient, FacetNormal
+from ufl import Coefficient, FacetNormal, inner
 
 from pantarei.domain import Domain
 
@@ -45,7 +45,9 @@ class IndexedDirichletBoundary:
 
 class VariationalBoundary(BoundaryData):
     @abstractmethod
-    def variational_boundary_form(self, u: Argument, v: Argument, n: FacetNormal, ds: Measure) -> Form:
+    def variational_boundary_form(
+        self, u: Argument, v: Argument, n: FacetNormal, ds: Measure
+    ) -> Form:
         pass
 
     def process(self, u: Argument, v: Argument, domain: Mesh) -> Form:
@@ -62,7 +64,9 @@ class IndexedVariationalBoundary:
         self.idx = index
         self.bc = bc
 
-    def process(self, U: List[Argument], V: List[Argument], domain: Mesh) -> Form:
+    def process(
+        self, U: List[Argument], V: List[Argument], domain: Mesh
+    ) -> Form:
         return self.bc.process(U, V[self.idx], domain)  # type: ignore
 
 
@@ -71,7 +75,9 @@ class NeumannBoundary(VariationalBoundary):
         self.g = value
         super().__init__("Neumann", tag=tag, **kwargs)
 
-    def variational_boundary_form(self, _: Argument, v: Argument, n: FacetNormal, ds: Measure) -> Form:
+    def variational_boundary_form(
+        self, _: Argument, v: Argument, n: FacetNormal, ds: Measure
+    ) -> Form:
         return inner(self.g, v) * ds(self.tag)  # type: ignore (seemingly wrong)
 
 
@@ -81,7 +87,9 @@ class RobinBoundary(VariationalBoundary):
         self.g = value
         super().__init__("Robin", tag=tag, **kwargs)
 
-    def variational_boundary_form(self, u: Argument, v: Argument, _: FacetNormal, ds: Measure) -> Form:
+    def variational_boundary_form(
+        self, u: Argument, v: Argument, _: FacetNormal, ds: Measure
+    ) -> Form:
         return self.a * (u - self.g) * v * ds(self.tag)
 
 
@@ -90,23 +98,44 @@ class TractionBoundary(VariationalBoundary):
         self.g = value
         super().__init__("Traction", tag=tag, **kwargs)
 
-    def variational_boundary_form(self, _: Argument, test: Argument, n: FacetNormal, ds: Measure):
+    def variational_boundary_form(
+        self, _: Argument, test: Argument, n: FacetNormal, ds: Measure
+    ):
         return inner(self.g, test) * ds(self.tag)
 
 
-def process_dirichlet(space: FunctionSpace, domain: Mesh, boundaries: List[BoundaryData]) -> List[DirichletBC]:
+def process_dirichlet(
+    space: FunctionSpace, domain: Mesh, boundaries: List[BoundaryData]
+) -> List[DirichletBC]:
     return [
-        bc.process(space, domain) for bc in boundaries if isinstance(bc, (DirichletBoundary, IndexedDirichletBoundary))
+        bc.process(space, domain)
+        for bc in boundaries
+        if isinstance(bc, (DirichletBoundary, IndexedDirichletBoundary))
     ]
 
 
-def process_boundary_forms(trial: Argument, test: Argument, domain: Mesh, boundaries: List[BoundaryData]) -> Form:
+def process_boundary_forms(
+    trial: Argument,
+    test: Argument,
+    domain: Mesh,
+    boundaries: List[BoundaryData],
+) -> Form:
     return sum([bc.process(trial, test, domain) for bc in boundaries if isinstance(bc, (VariationalBoundary, IndexedVariationalBoundary))])  # type: ignore
 
 
-def indexed_boundary_conditions(bcs: Dict[int, List[BoundaryData]]) -> List[IndexedBoundaryData]:
+def indexed_boundary_conditions(
+    bcs: Dict[int, List[BoundaryData]]
+) -> List[IndexedBoundaryData]:
     bcs_out = []
     for idx, idx_bcs in bcs.items():
-        bcs_out += [IndexedDirichletBoundary(idx, bc) for bc in idx_bcs if isinstance(bc, DirichletBoundary)]
-        bcs_out += [IndexedVariationalBoundary(idx, bc) for bc in idx_bcs if isinstance(bc, VariationalBoundary)]
+        bcs_out += [
+            IndexedDirichletBoundary(idx, bc)
+            for bc in idx_bcs
+            if isinstance(bc, DirichletBoundary)
+        ]
+        bcs_out += [
+            IndexedVariationalBoundary(idx, bc)
+            for bc in idx_bcs
+            if isinstance(bc, VariationalBoundary)
+        ]
     return bcs_out

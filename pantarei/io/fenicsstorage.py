@@ -1,10 +1,10 @@
-import os
-import dolfin as df
 import logging
+import os
 import re
-from typing import Union, List
 from pathlib import Path
+from typing import List, Union
 
+import dolfin as df
 import numpy as np
 import ufl
 
@@ -31,7 +31,9 @@ class FenicsStorage:
 
     def read_domain(self):
         mesh = df.Mesh(df.MPI.comm_world)
-        self.hdf.read(mesh, "/domain/mesh", False)  # Parallell might cause troubles.
+        self.hdf.read(
+            mesh, "/domain/mesh", False
+        )  # Parallell might cause troubles.
         n = mesh.topology().dim()
         subdomains = df.MeshFunction("size_t", mesh, n)
         boundaries = df.MeshFunction("size_t", mesh, n - 1)
@@ -87,7 +89,10 @@ class FenicsStorage:
     def to_xdmf(self, funcname: str, subnames: Union[str, List[str]]):
         """FIXME: Rewrite as external function taking in a FenicsStorage object."""
         xdmfs = {
-            name: df.XDMFFile(df.MPI.comm_world, str(self.filepath.parent / "visual_{}.xdmf".format(name)))
+            name: df.XDMFFile(
+                df.MPI.comm_world,
+                str(self.filepath.parent / "visual_{}.xdmf".format(name)),
+            )
             for name in flat(subnames)
         }
         times = self.read_timevector(funcname)
@@ -98,12 +103,24 @@ class FenicsStorage:
         for xdmf in xdmfs.values():
             xdmf.close()
 
+
 def read_signature(signature):
     # Imported here since the signature require functions without namespace
     # but we want to avoid them in global scope.
-    from dolfin import MixedElement, FiniteElement, VectorElement, TensorElement
-    from dolfin import interval, triangle, tetrahedron, quadrilateral, hexahedron
+    from dolfin import (
+        FiniteElement,
+        MixedElement,
+        TensorElement,
+        VectorElement,
+        hexahedron,
+        interval,
+        quadrilateral,
+        tetrahedron,
+        triangle,
+    )
+
     return eval(signature)
+
 
 def write_to_xdmf(xdmfs, u, t, names):
     if isinstance(names, str):

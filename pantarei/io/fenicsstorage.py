@@ -50,13 +50,13 @@ class FenicsStorage:
             self.write_domain(function.function_space().mesh())
         self.hdf.write(function, f"{name}", 0.0)
 
-    def read_function(self, name, domain=None):
+    def read_function(self, name, domain=None, idx: int = 0):
         if domain is None:
             domain = self.read_domain()
         element = self.read_element(name)
         V = df.FunctionSpace(domain, element)
         u = df.Function(V, name=name)
-        self.hdf.read(u, f"{name}/vector_{0}")
+        self.hdf.read(u, f"{name}/vector_{idx}")
         return u
 
     def write_checkpoint(self, function: df.Function, name: str, t: float):

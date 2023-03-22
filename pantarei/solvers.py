@@ -13,7 +13,7 @@ from dolfin import (
     rhs,
     solve,
 )
-from ufl import Coefficient
+from ufl import Coefficient, UFLException
 from ufl.finiteelement.finiteelementbase import FiniteElementBase
 
 from pantarei.boundary import (
@@ -24,6 +24,7 @@ from pantarei.boundary import (
 from pantarei.computers import BaseComputer
 from pantarei.forms import AbstractForm
 from pantarei.io.timeseriesstorage import TimeSeriesStorage
+from pantarei.io.fenicsstorage import FenicsStorage
 from pantarei.timekeeper import TimeKeeper
 
 
@@ -110,8 +111,6 @@ def solve_stationary(
 
 
 T = TypeVar("T")
-
-
 def set_optional(
     argument: Optional[T], classname: Callable[[Any], T], *args, **kwargs
 ) -> T:
@@ -148,13 +147,17 @@ def solve_time_dependent(
     time.reset()
     V = FunctionSpace(domain, element)
     dirichlet_bcs = process_dirichlet(V, domain, boundaries)
-    storage = TimeSeriesStorage("w", storage_path, mesh=domain, V=V)
+    storage = FenicsStorage(storage_path, "w")
     computer = set_optional(computer, BaseComputer, {})
     updater = set_optional(updater, ProblemUpdater)
+    projector = set_optional(projector, df.project)
 
     # Prepare initial conditions
-
-    u0 = df.project(initial_condition, V, bcs=dirichlet_bcs)
+    # FIXME: Should leave this as the user's responsibility.
+    # Both in case they explicitly want to avoid it, or if they want 
+    # to name the initial condition something else.
+    u0 = projector(initial_condition, V, bcs=dirichlet_bcs)  # type: ignore
+    coefficients["u0"] = u0 
     u = Function(V, name=name)
     u.assign(u0)
 
@@ -169,13 +172,13 @@ def solve_time_dependent(
 
     computer.compute(time, u)
     updater.update(u, time, coefficients)
-    storage.write(u, float(time))
+    storage.write_function(u, name)
     for idx, ti in enumerate(time):
         b = assemble(l)
         solver.solve(u, A, b, dirichlet_bcs)
         computer.compute(ti, u)
         updater.update(u, ti, coefficients)
-        storage.write(u, float(ti))
+        storage.write_checkpoint(u, name, float(time))
         coefficients["u0"].assign(u)
 
     storage.close()

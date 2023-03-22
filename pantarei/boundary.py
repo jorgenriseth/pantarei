@@ -19,10 +19,6 @@ class BoundaryData(ABC):
         pass
 
 
-class IndexedBoundaryData:
-    pass
-
-
 class DirichletBoundary(BoundaryData):
     def __init__(self, value, tag: Union[int, str], **kwargs):
         self.uD = value

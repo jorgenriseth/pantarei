@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Dict, List, Union, TypeAlias
 
-import dolfin as df
 from dolfin import DirichletBC, Form, FunctionSpace, Measure, Mesh
 from dolfin.function.argument import Argument
 from ufl import Coefficient, FacetNormal, inner
@@ -19,10 +18,14 @@ class BoundaryData(ABC):
         pass
 
 
+class IndexedBoundaryData:
+    pass
+
+
 class DirichletBoundary(BoundaryData):
-    def __init__(self, value, tag: Union[int, str], **kwargs):
+    def __init__(self, value, tag: Union[int, str]):
         self.uD = value
-        super().__init__("Dirichlet", tag=tag, **kwargs)
+        super().__init__("Dirichlet", tag=tag)
 
     def process(self, space: FunctionSpace, domain: Mesh) -> DirichletBC:
         if self.tag == "everywhere":
@@ -89,17 +92,6 @@ class RobinBoundary(VariationalBoundary):
         return self.a * (u - self.g) * v * ds(self.tag)
 
 
-class TractionBoundary(VariationalBoundary):
-    def __init__(self, value, tag: int, **kwargs):
-        self.g = value
-        super().__init__("Traction", tag=tag, **kwargs)
-
-    def variational_boundary_form(
-        self, _: Argument, test: Argument, n: FacetNormal, ds: Measure
-    ):
-        return inner(self.g, test) * ds(self.tag)
-
-
 def process_dirichlet(
     space: FunctionSpace, domain: Mesh, boundaries: List[BoundaryData]
 ) -> List[DirichletBC]:
@@ -116,10 +108,14 @@ def process_boundary_forms(
     domain: Mesh,
     boundaries: List[BoundaryData],
 ) -> Form:
-    return sum([bc.process(trial, test, domain) for bc in boundaries if isinstance(bc, (VariationalBoundary, IndexedVariationalBoundary))])  # type: ignore
+    return sum(
+        [
+            bc.process(trial, test, domain)
+            for bc in boundaries
+            if isinstance(bc, (VariationalBoundary, IndexedVariationalBoundary))
+        ],
+    )  # type: ignore
 
-
-IndexedBoundaryData: TypeAlias = Union[IndexedDirichletBoundary, IndexedVariationalBoundary]
 
 def indexed_boundary_conditions(
     bcs: Dict[int, List[BoundaryData]]

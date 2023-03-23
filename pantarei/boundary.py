@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Dict, List, Union
+from typing import Dict, List, Union, TypeAlias
 
 import dolfin as df
 from dolfin import DirichletBC, Form, FunctionSpace, Measure, Mesh
@@ -118,6 +118,8 @@ def process_boundary_forms(
 ) -> Form:
     return sum([bc.process(trial, test, domain) for bc in boundaries if isinstance(bc, (VariationalBoundary, IndexedVariationalBoundary))])  # type: ignore
 
+
+IndexedBoundaryData: TypeAlias = Union[IndexedDirichletBoundary, IndexedVariationalBoundary]
 
 def indexed_boundary_conditions(
     bcs: Dict[int, List[BoundaryData]]

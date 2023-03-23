@@ -10,11 +10,6 @@ class BaseComputer:
         self.initiated = False
         self.values = {}
 
-    # def initiate(self, time, u):
-    #     self.initiate = True
-    #     self._create_value_dict(time)
-    #     self.compute(time, u)
-
     def _create_value_dict(self, timekeeper):
         self.initiated = True
         self.values = {key: zeros(len(timekeeper)) for key in self.functions}

@@ -151,6 +151,7 @@ def solve_time_dependent(
     computer = set_optional(computer, BaseComputer, {})
     updater = set_optional(updater, ProblemUpdater)
     projector = set_optional(projector, df.project)
+    name = set_optional(name, str)
 
     # Prepare initial conditions
     # FIXME: Should leave this as the user's responsibility.

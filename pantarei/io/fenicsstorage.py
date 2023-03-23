@@ -20,6 +20,8 @@ class FenicsStorage:
         self.mode = mode
         if mode == "w" or mode == "a":
             self.filepath.parent.mkdir(exist_ok=True, parents=True)
+            if mode == "w" and  df.MPI.comm_world.rank == 0:
+                self.filepath.unlink(missing_ok=True)
             df.MPI.comm_world.barrier()
         self.hdf = df.HDF5File(df.MPI.comm_world, str(self.filepath), mode)
 

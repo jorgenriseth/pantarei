@@ -8,17 +8,18 @@ from dolfin import (
     TestFunction,
     TrialFunction,
     assemble,
+    grad,
+    inner,
     project,
     solve,
-    inner,
-    grad
 )
 from ufl import Coefficient
 
+
 def create_smoothing_projection(h1_weight):
     def smoothing_projection(u, V, bcs):
-        """Projects the function u onto a function space V with 
-        Dirichlet boundary conditions given by bcs with a weighted H1-norm 
+        """Projects the function u onto a function space V with
+        Dirichlet boundary conditions given by bcs with a weighted H1-norm
         i.e.  a weight coefficient for the 1-st derivative on the norm in which
         the minimization problem is solved."""
         u_ = TrialFunction(V)
@@ -33,6 +34,7 @@ def create_smoothing_projection(h1_weight):
             bc.apply(A, b)
         solve(A, u1.vector(), b)
         return u1
+
     return smoothing_projection
 
 

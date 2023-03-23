@@ -1,4 +1,5 @@
-from typing import Dict, Callable
+from typing import Callable, Dict
+
 from dolfin import Function
 from numpy import zeros
 

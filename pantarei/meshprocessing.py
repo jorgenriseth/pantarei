@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 import glob
+import logging
 import os
 import uuid
-import logging
 from pathlib import Path
-from typing import List, TypeAlias, Union, Optional
+from typing import Optional, TypeAlias, Union
 
 import meshio
 import SVMTK as svmtk
@@ -46,7 +46,11 @@ def clean_tmp(directory, suffix, no_output=False):
 
 
 def stl2mesh(
-    stlfiles, meshfile_out, resolution, subdomain_map=None, remove_subdomains=None
+    stlfiles,
+    meshfile_out,
+    resolution,
+    subdomain_map=None,
+    remove_subdomains=None,
 ):
     """Creates an svmtk-domain from a set of stl-files, and stores as a meshio .mesh-file. May optionally remove
     sepecifc subdomains, or add subdomain markers."""
@@ -105,7 +109,9 @@ def meshio2xdmf(mesh, xdmfdir, dim):
     meshio.write("{}/mesh.xdmf".format(xdmfdir), meshdata)
     if "gmsh:physical" or "medit:ref" in mesh.cell_data_dict:
         cell_data_name = (
-            "gmsh:physical" if "gmsh:physical" in mesh.cell_data_dict else "medit:ref"
+            "gmsh:physical"
+            if "gmsh:physical" in mesh.cell_data_dict
+            else "medit:ref"
         )
         # Write the subdomains of the mesh
         subdomains = {
@@ -115,7 +121,9 @@ def meshio2xdmf(mesh, xdmfdir, dim):
         meshio.write("{}/subdomains.xdmf".format(xdmfdir), subdomainfile)
 
         # Write the boundaries/interfaces of the mesh
-        boundaries = {"boundaries": [mesh.cell_data_dict[cell_data_name][facet_label]]}
+        boundaries = {
+            "boundaries": [mesh.cell_data_dict[cell_data_name][facet_label]]
+        }
         boundaryfile = meshio.Mesh(points, facets, cell_data=boundaries)
         meshio.write("{}/boundaries.xdmf".format(xdmfdir), boundaryfile)
 
@@ -131,20 +139,17 @@ def xdmf2hdf(xdmfdir, hdf5file):
 
     # Read cell data to a MeshFunction (of dim n)
     n = mesh.topology().dim()
-    if (dirpath / "subdomains.xdmf").exists():  # Assumes boundaries does not exist with subdomains.
-        subdomains = MeshFunction("size_t", mesh, n)
+    subdomains = MeshFunction("size_t", mesh, n)
+    if (dirpath / "subdomains.xdmf").exists():
         with XDMFFile(str(dirpath / "subdomains.xdmf")) as subdomainfile:
             subdomainfile.read(subdomains, "subdomains")
 
-        # Read face data into a Meshfunction of dim n-1
-        bdrycollection = MeshValueCollection("size_t", mesh, n - 1)
+    bdrycollection = MeshValueCollection("size_t", mesh, n - 1)
+    if (dirpath / "boundaries.xdmf").exists():
         with XDMFFile(str(dirpath / "boundaries.xdmf")) as boundaryfile:
             boundaryfile.read(bdrycollection, "boundaries")
-        boundaries = MeshFunction("size_t", mesh, bdrycollection)
-        meshfunction_default_value(boundaries, 0)
-    else:
-        subdomains = boundaries = None
-    # Write all files into a single h5-file.
+    boundaries = MeshFunction("size_t", mesh, bdrycollection)
+
     with HDF5File(mesh.mpi_comm(), str(hdf5file), "w") as f:
         f.write(mesh, "/domain/mesh")
         f.write(subdomains, "/domain/subdomains")

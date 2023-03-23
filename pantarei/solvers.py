@@ -1,5 +1,6 @@
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional, TypeAlias, TypeVar
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional, TypeAlias, TypeVar, Union
 
 import dolfin as df
 from dolfin import (
@@ -13,18 +14,13 @@ from dolfin import (
     rhs,
     solve,
 )
-from ufl import Coefficient, UFLException
+from ufl import Coefficient 
 from ufl.finiteelement.finiteelementbase import FiniteElementBase
 
-from pantarei.boundary import (
-    BoundaryData,
-    process_boundary_forms,
-    process_dirichlet,
-)
+from pantarei.boundary import BoundaryData, process_dirichlet
 from pantarei.computers import BaseComputer
+from pantarei.fenicsstorage import FenicsStorage
 from pantarei.forms import AbstractForm
-from pantarei.io.timeseriesstorage import TimeSeriesStorage
-from pantarei.io.fenicsstorage import FenicsStorage
 from pantarei.timekeeper import TimeKeeper
 
 
@@ -54,37 +50,6 @@ class StationaryProblemSolver(ProblemSolver):
         return u
 
 
-class QuasiStationarySolver(ProblemSolver):
-    def __init__(
-        self,
-        solver: StationaryProblemSolver,
-        storage: Optional[TimeSeriesStorage] = None,
-        computer: Optional[BaseComputer] = None,
-    ):
-
-        self._solver = solver
-        self._storage = storage
-        self._computer = computer
-
-    def solve(self, V: FunctionSpace, time: TimeKeeper) -> Function:
-        pass
-
-
-class TimeDependentSolver(ProblemSolver):
-    def __init__(
-        self,
-        solver: StationaryProblemSolver,
-        storage: Optional[TimeSeriesStorage] = None,
-        computer: Optional[BaseComputer] = None,
-    ):
-        self._solver = solver
-        self._storage = storage
-        self._computer = computer
-
-    def solve(self, V: FunctionSpace, time: TimeKeeper) -> df.Function:
-        pass
-
-
 def solve_stationary(
     domain: Mesh,
     element: FiniteElementBase,
@@ -111,6 +76,8 @@ def solve_stationary(
 
 
 T = TypeVar("T")
+
+
 def set_optional(
     argument: Optional[T], classname: Callable[[Any], T], *args, **kwargs
 ) -> T:
@@ -119,13 +86,11 @@ def set_optional(
     return argument
 
 
-class ProblemUpdater:
-    def update(self, u: Function, time: TimeKeeper, coefficients) -> None:
-        pass
-
-
 def trial_test_functions(form: Form):
     return form.arguments()[1], form.arguments()[0]
+
+
+StrPath: TypeAlias = Union[str, Path]
 
 
 def solve_time_dependent(
@@ -137,28 +102,27 @@ def solve_time_dependent(
     initial_condition,
     time: TimeKeeper,
     solver: StationaryProblemSolver,
-    storage_path: Optional[str] = None,
+    storage_path: StrPath,
     name: Optional[str] = None,
     computer: Optional[BaseComputer] = None,
-    updater: Optional[ProblemUpdater] = None,
     projector=None,
 ) -> BaseComputer:
     """Solve a time-dependent problem"""
-    time.reset()
-    V = FunctionSpace(domain, element)
-    dirichlet_bcs = process_dirichlet(V, domain, boundaries)
-    storage = FenicsStorage(storage_path, "w")
     computer = set_optional(computer, BaseComputer, {})
-    updater = set_optional(updater, ProblemUpdater)
     projector = set_optional(projector, df.project)
     name = set_optional(name, str)
 
+    time.reset()  # TODO: Should this be the user's responsibility?
+    V = FunctionSpace(domain, element)
+    dirichlet_bcs = process_dirichlet(V, domain, boundaries)
+    storage = FenicsStorage(storage_path, "w")
+
     # Prepare initial conditions
     # FIXME: Should leave this as the user's responsibility.
-    # Both in case they explicitly want to avoid it, or if they want 
+    # Both in case they explicitly want to avoid it, or if they want
     # to name the initial condition something else.
     u0 = projector(initial_condition, V, bcs=dirichlet_bcs)  # type: ignore
-    coefficients["u0"] = u0 
+    coefficients["u0"] = u0  # type: ignore
     u = Function(V, name=name)
     u.assign(u0)
 
@@ -172,15 +136,13 @@ def solve_time_dependent(
     A = assemble(a)
 
     computer.compute(time, u)
-    updater.update(u, time, coefficients)
     storage.write_function(u, name)
     for idx, ti in enumerate(time):
         b = assemble(l)
         solver.solve(u, A, b, dirichlet_bcs)
         computer.compute(ti, u)
-        updater.update(u, ti, coefficients)
         storage.write_checkpoint(u, name, float(time))
-        coefficients["u0"].assign(u)
+        coefficients["u0"].assign(u)  # type: ignore
 
     storage.close()
     return computer

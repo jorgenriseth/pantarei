@@ -20,7 +20,7 @@ class FenicsStorage:
         self.mode = mode
         if mode == "w" or mode == "a":
             self.filepath.parent.mkdir(exist_ok=True, parents=True)
-            if mode == "w" and  df.MPI.comm_world.rank == 0:
+            if mode == "w" and df.MPI.comm_world.rank == 0:
                 self.filepath.unlink(missing_ok=True)
             df.MPI.comm_world.barrier()
         self.hdf = df.HDF5File(df.MPI.comm_world, str(self.filepath), mode)
@@ -117,6 +117,8 @@ class FenicsStorage:
     #     }
     #     for ti, ui in self.dual_iter():
     #         write_to_pvd(pvds, ti, ui, names)
+
+
 # def write_to_pvd(pvds, t, u, names):
 #     if type(names) == str:
 #         u.rename(names, "")
@@ -140,6 +142,7 @@ def read_signature(signature):
         tetrahedron,
         triangle,
     )
+
     return eval(signature)
 
 

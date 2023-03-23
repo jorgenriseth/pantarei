@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Dict, List, Union, TypeAlias
+from typing import Dict, List, Union
 
 from dolfin import DirichletBC, Form, FunctionSpace, Measure, Mesh
 from dolfin.function.argument import Argument

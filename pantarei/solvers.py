@@ -79,7 +79,7 @@ T = TypeVar("T")
 
 
 def set_optional(
-    argument: Optional[T], classname: Callable[[Any], T], *args, **kwargs
+    argument: Optional[T], classname: Callable[..., T], *args, **kwargs
 ) -> T:
     if argument is None:
         argument = classname(*args, **kwargs)
@@ -109,7 +109,7 @@ def solve_time_dependent(
 ) -> BaseComputer:
     """Solve a time-dependent problem"""
     computer = set_optional(computer, BaseComputer, {})
-    projector = set_optional(projector, df.project)
+    projector = set_optional(projector, lambda: df.project)
     name = set_optional(name, str)
 
     time.reset()  # TODO: Should this be the user's responsibility?

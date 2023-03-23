@@ -31,7 +31,7 @@ class FenicsStorage:
             self.hdf.write(domain.subdomains, "/domain/subdomains")
             self.hdf.write(domain.boundaries, "/domain/boundaries")
 
-    def read_domain(self):
+    def read_domain(self) -> Domain:
         mesh = df.Mesh(df.MPI.comm_world)
         self.hdf.read(
             mesh, "/domain/mesh", False

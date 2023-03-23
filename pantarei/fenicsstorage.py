@@ -105,6 +105,26 @@ class FenicsStorage:
         for xdmf in xdmfs.values():
             xdmf.close()
 
+    # TODO: Add proper pvd-file support.
+    # Moved here from timeseriesstorage, probably needs rewrite.
+    # def to_pvd(self, names: Union[str, Tuple[str]]):
+    #     pvds = {
+    #         name: File(
+    #             self.mesh.mpi_comm(),
+    #             str(self.filepath / "{}/{}.pvd".format(name, name)),
+    #         )
+    #         for name in flat(names)
+    #     }
+    #     for ti, ui in self.dual_iter():
+    #         write_to_pvd(pvds, ti, ui, names)
+# def write_to_pvd(pvds, t, u, names):
+#     if type(names) == str:
+#         u.rename(names, "")
+#         pvds[names] << (u, t)  # type: ignore
+#     else:
+#         for uj, name in zip(u.split(deepcopy=True), names):
+#             write_to_xdmf(pvds, t, uj, name)
+
 
 def read_signature(signature):
     # Imported here since the signature require functions without namespace

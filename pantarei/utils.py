@@ -10,3 +10,9 @@ def assign_mixed_function(p, V, compartments):
     assigner = df.FunctionAssigner(V, subspaces)
     assigner.assign(P, Pint)
     return P
+
+
+def rescale_function(u: df.Function, value: float):
+    v = u.vector()
+    v *= value / df.assemble(u * df.dx)
+    return u

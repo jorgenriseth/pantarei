@@ -1,6 +1,15 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, TypeAlias, TypeVar, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    TypeAlias,
+    TypeVar,
+    Union,
+)
 
 import dolfin as df
 from dolfin import (
@@ -14,7 +23,7 @@ from dolfin import (
     rhs,
     solve,
 )
-from ufl import Coefficient 
+from ufl import Coefficient
 from ufl.finiteelement.finiteelementbase import FiniteElementBase
 
 from pantarei.boundary import BoundaryData, process_dirichlet
@@ -60,17 +69,16 @@ def solve_stationary(
     name: Optional[str] = None,
 ) -> Function:
     V = FunctionSpace(domain, element)
-    F = form.create_fem_form(
-        V, coefficients, boundaries
-    ) 
+    F = form(V, coefficients, boundaries)
     dirichlet_bcs = process_dirichlet(V, domain, boundaries)
-    a: Form = lhs(F)  #  type: ignore (lhs/rhs allow too many return-types.)
-    l: Form = rhs(F)  #  type: ignore (lhs/rhs allow too many return-types.)
+    a = lhs(F)
+    l = rhs(F)
     A = assemble(a)
-    if not l.empty():
-        b = assemble(l)
+    if l.empty():  # type: ignore
+        b = Function(V).vector()
     else:
-        b = Function(V).vector() 
+        b = assemble(l)
+
     u = Function(V, name=name)
     return solver.solve(u, A, b, dirichlet_bcs)
 
@@ -86,13 +94,6 @@ def set_optional(
     return argument
 
 
-def trial_test_functions(form: Form):
-    return form.arguments()[1], form.arguments()[0]
-
-
-StrPath: TypeAlias = Union[str, Path]
-
-
 def solve_time_dependent(
     domain: Mesh,
     element: FiniteElementBase,
@@ -105,51 +106,45 @@ def solve_time_dependent(
     storage: FenicsStorage,
     name: Optional[str] = None,
     computer: Optional[BaseComputer] = None,
-    projector=None,
 ) -> BaseComputer:
     """Solve a time-dependent problem"""
     computer = set_optional(computer, BaseComputer, {})
-    # projector = set_optional(projector, lambda: df.project)
     name = set_optional(name, str)
 
-    time.reset()  # TODO: Should this be the user's responsibility?
     V = FunctionSpace(domain, element)
-    dirichlet_bcs = process_dirichlet(V, domain, boundaries)
-
-    u0 = initial_condition(V, boundaries)
-    coefficients["u0"] = u0  # type: ignore
     u = Function(V, name=name)
-    u.assign(u0)
 
-    # TODO:
-    # 1) Switch form to a closure/callable.
-    # 2) Change "process" to take in the form, rather than test/trialfunctions.
-    F = form.create_fem_form(V, coefficients, boundaries)
-    a: Form = lhs(F)  #  type: ignore (lhs/rhs allow too many return-types.)
-    l: Form = rhs(F)  #  type: ignore (lhs/rhs allow too many return-types.
-
-    A = assemble(a)
-
+    coefficients["u0"] = initial_condition(V, boundaries)
+    if not isinstance(coefficients["u0"], Function):
+        coefficients["u0"] = df.project(coefficients["u0"], V)
+    u.assign(coefficients["u0"])
     computer.compute(time, u)
     storage.write_function(u, name)
-    for idx, ti in enumerate(time):
+
+    dirichlet_bcs = process_dirichlet(V, domain, boundaries)
+    F = form(V, coefficients, boundaries)
+    a = lhs(F)
+    l = rhs(F)
+    A = assemble(a)
+
+    for ti in time:
         print_progress(float(ti), time.endtime, rank=df.MPI.comm_world.rank)
         b = assemble(l)
         solver.solve(u, A, b, dirichlet_bcs)
         computer.compute(ti, u)
         storage.write_checkpoint(u, name, float(time))
-        coefficients["u0"].assign(u)  # type: ignore
+        coefficients["u0"].assign(u)
 
     storage.close()
     return computer
 
+
 def print_progress(t, T, rank=0):
-    if rank !=0:
+    if rank != 0:
         return
     progress = int(20 * t / T)
-    print(
-        f"[{'=' * progress}{' ' * (20 - progress)}]", end="\r", flush=True
-    )
+    print(f"[{'=' * progress}{' ' * (20 - progress)}]", end="\r", flush=True)
+
 
 @dataclass
 class StationaryProblem:
@@ -171,3 +166,7 @@ class StationaryProblem:
             self.solver,
             self.name,
         )
+
+
+def trial_test_functions(form: Form):
+    return form.arguments()[1], form.arguments()[0]

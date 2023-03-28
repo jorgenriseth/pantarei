@@ -1,5 +1,4 @@
-from abc import ABC, abstractmethod
-from typing import Dict, List
+from typing import Callable, Dict, List, TypeAlias
 
 from dolfin import (
     Form,
@@ -13,23 +12,14 @@ from dolfin import (
 from ufl import Coefficient
 
 from pantarei.boundary import BoundaryData, process_boundary_forms
-from pantarei.domain import Domain
+
+AbstractForm: TypeAlias = Callable[
+    [FunctionSpace, Dict[str, Coefficient], List[BoundaryData]], Form
+]
 
 
-class AbstractForm(ABC):
-    @staticmethod
-    @abstractmethod
-    def create_fem_form(
-        V: FunctionSpace,
-        coefficients: Dict[str, Coefficient],
-        boundaries: List[BoundaryData],
-    ) -> Form:
-        pass
-
-
-class PoissonForm:
-    @staticmethod
-    def create_fem_form(
+def poisson_form() -> AbstractForm:
+    def abstract_form(
         V: FunctionSpace,
         coefficients: Dict[str, Coefficient],
         boundaries: List[BoundaryData],
@@ -41,15 +31,14 @@ class PoissonForm:
         f = coefficients["source"]
         dx = Measure("dx", V.mesh())
         return (
-            inner(D * grad(u), grad(v)) - f * v
-        ) * dx + process_boundary_forms(  # type: ignore
-            u, v, domain, boundaries
-        )
+            inner(D * grad(u), grad(v)) - f * v  # type: ignore
+        ) * dx + process_boundary_forms(u, v, domain, boundaries)
+
+    return abstract_form
 
 
-class DiffusionForm:
-    @staticmethod
-    def create_fem_form(
+def diffusion_form() -> AbstractForm:
+    def abstract_form(
         V: FunctionSpace,
         coefficients: Dict[str, Coefficient],
         boundaries: List[BoundaryData],
@@ -62,8 +51,8 @@ class DiffusionForm:
         f = coefficients["source"]
         dx = Measure("dx", V.mesh())
         F = (
-            (u - u0) * v + dt * (inner(D * grad(u), grad(v)) - f * v)
-        ) * dx + dt * process_boundary_forms(  # type: ignore
-            u, v, V.mesh(), boundaries
-        )
+            (u - u0) * v + dt * (inner(D * grad(u), grad(v)) - f * v)  # type: ignore
+        ) * dx + dt * process_boundary_forms(u, v, V.mesh(), boundaries)
         return F
+
+    return abstract_form

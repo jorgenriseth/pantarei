@@ -33,7 +33,7 @@ class DirichletBoundary(BoundaryData):
         return DirichletBC(space, self.uD, domain.boundaries, self.tag)
 
 
-class IndexedDirichletBoundary:
+class IndexedDirichletBoundary(IndexedBoundaryData):
     def __init__(self, index: int, bc: DirichletBoundary):
         self.idx = index
         self.bc = bc
@@ -58,7 +58,7 @@ class VariationalBoundary(BoundaryData):
         return self.variational_boundary_form(u, v, n, ds)
 
 
-class IndexedVariationalBoundary:
+class IndexedVariationalBoundary(IndexedBoundaryData):
     def __init__(self, index: int, bc: VariationalBoundary):
         self.idx = index
         self.bc = bc

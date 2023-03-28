@@ -55,9 +55,8 @@ def stl2mesh(
     """Creates an svmtk-domain from a set of stl-files, and stores as a meshio .mesh-file. May optionally remove
     sepecifc subdomains, or add subdomain markers."""
     assert (
-        type(stlfiles) == list
+        isinstance(stlfiles, list)
     ), "stlfiles should be list. (single surface may be wrapped as length 1 list)."
-    stlfiles = list(stlfiles)
     surfaces = [svmtk.Surface(str(stl)) for stl in stlfiles]
     if subdomain_map is not None:
         domain = svmtk.Domain(surfaces, subdomain_map)

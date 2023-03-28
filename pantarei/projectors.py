@@ -1,3 +1,5 @@
+from typing import Callable, List, TypeAlias, Any, Dict
+
 from dolfin import dx  # type: ignore
 from dolfin import (
     Constant,
@@ -15,9 +17,11 @@ from dolfin import (
 )
 from ufl import Coefficient
 
+from pantarei.utils import assign_mixed_function
 
-def create_smoothing_projection(h1_weight):
-    def smoothing_projection(u, V, bcs):
+
+def smoothing_projector(h1_weight):
+    def projector(u, V, bcs):
         """Projects the function u onto a function space V with
         Dirichlet boundary conditions given by bcs with a weighted H1-norm
         i.e.  a weight coefficient for the 1-st derivative on the norm in which
@@ -35,7 +39,7 @@ def create_smoothing_projection(h1_weight):
         solve(A, u1.vector(), b)
         return u1
 
-    return smoothing_projection
+    return projector
 
 
 class NeumannProjector:
@@ -54,7 +58,25 @@ class NeumannProjector:
         return u0
 
 
-def rescale_function(u: Function, value: float):
+def rescale_function(u: Function, value: float) -> Function:
     v = u.vector()
     v *= value / assemble(u * dx)
     return u
+
+
+Projector: TypeAlias = Callable[
+    [Any, FunctionSpace, List[DirichletBC]], Function
+]
+
+
+def mixed_space_projector(
+    labels: List[str], projector: Projector
+) -> Callable[[Any, FunctionSpace, List[DirichletBC]], Function]:
+
+    def project(
+        u0: Dict[str, Coefficient], V: FunctionSpace, bcs: List[DirichletBC]
+    ) -> Function:
+        U = assign_mixed_function(u0, V, labels)
+        return projector(U, V, bcs)
+
+    return project

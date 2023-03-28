@@ -62,7 +62,7 @@ def solve_stationary(
     V = FunctionSpace(domain, element)
     F = form.create_fem_form(
         V, coefficients, boundaries
-    )  # + process_boundary_forms()
+    ) 
     dirichlet_bcs = process_dirichlet(V, domain, boundaries)
     a: Form = lhs(F)  #  type: ignore (lhs/rhs allow too many return-types.)
     l: Form = rhs(F)  #  type: ignore (lhs/rhs allow too many return-types.)
@@ -70,7 +70,7 @@ def solve_stationary(
     if not l.empty():
         b = assemble(l)
     else:
-        b = df.cpp.la.Vector(domain.mpi_comm(), V.dim())
+        b = Function(V).vector() 
     u = Function(V, name=name)
     return solver.solve(u, A, b, dirichlet_bcs)
 
@@ -99,29 +99,24 @@ def solve_time_dependent(
     coefficients: Dict[str, Coefficient],
     form: AbstractForm,
     boundaries: List[BoundaryData],
-    initial_condition,
+    initial_condition: Callable[[FunctionSpace, List[BoundaryData]], Function],
     time: TimeKeeper,
     solver: StationaryProblemSolver,
-    storage_path: StrPath,
+    storage: FenicsStorage,
     name: Optional[str] = None,
     computer: Optional[BaseComputer] = None,
     projector=None,
 ) -> BaseComputer:
     """Solve a time-dependent problem"""
     computer = set_optional(computer, BaseComputer, {})
-    projector = set_optional(projector, lambda: df.project)
+    # projector = set_optional(projector, lambda: df.project)
     name = set_optional(name, str)
 
     time.reset()  # TODO: Should this be the user's responsibility?
     V = FunctionSpace(domain, element)
     dirichlet_bcs = process_dirichlet(V, domain, boundaries)
-    storage = FenicsStorage(storage_path, "w")
 
-    # Prepare initial conditions
-    # FIXME: Should leave this as the user's responsibility.
-    # Both in case they explicitly want to avoid it, or if they want
-    # to name the initial condition something else.
-    u0 = projector(initial_condition, V, bcs=dirichlet_bcs)  # type: ignore
+    u0 = initial_condition(V, boundaries)
     coefficients["u0"] = u0  # type: ignore
     u = Function(V, name=name)
     u.assign(u0)
@@ -138,6 +133,7 @@ def solve_time_dependent(
     computer.compute(time, u)
     storage.write_function(u, name)
     for idx, ti in enumerate(time):
+        print_progress(float(ti), time.endtime, rank=df.MPI.comm_world.rank)
         b = assemble(l)
         solver.solve(u, A, b, dirichlet_bcs)
         computer.compute(ti, u)
@@ -147,6 +143,13 @@ def solve_time_dependent(
     storage.close()
     return computer
 
+def print_progress(t, T, rank=0):
+    if rank !=0:
+        return
+    progress = int(20 * t / T)
+    print(
+        f"[{'=' * progress}{' ' * (20 - progress)}]", end="\r", flush=True
+    )
 
 @dataclass
 class StationaryProblem:

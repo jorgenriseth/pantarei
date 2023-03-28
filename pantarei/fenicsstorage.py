@@ -74,17 +74,18 @@ class FenicsStorage:
         return self.hdf.attributes(f"{name}/vector_{idx}")["timestamp"]
 
     def read_timevector(self, function_name: str) -> np.ndarray:
-        num_entries = self.hdf.attributes(function_name)["count"]
+        num_entries = int(self.hdf.attributes(function_name)["count"])
         time = np.zeros(num_entries)
         for i in range(num_entries):
             time[i] = self.read_checkpoint_time(function_name, i)
         return time
 
     def close(self):
-        logger.info(
-            f"Process {df.MPI.comm_world.rank} waiting for other\
-                    processes before closing file."
-        )
+        if df.MPI.comm_world.size > 1:
+            logger.info(
+                f"Process {df.MPI.comm_world.rank} waiting for other\
+                        processes before closing file."
+            )
         df.MPI.comm_world.barrier()
         self.hdf.close()
 
@@ -93,7 +94,7 @@ class FenicsStorage:
         xdmfs = {
             name: df.XDMFFile(
                 df.MPI.comm_world,
-                str(self.filepath.parent / "visual_{}.xdmf".format(name)),
+                str(self.filepath.parent / "{}_{}.xdmf".format(funcname, name)),
             )
             for name in flat(subnames)
         }
@@ -142,7 +143,6 @@ def read_signature(signature):
         tetrahedron,
         triangle,
     )
-
     return eval(signature)
 
 

@@ -143,6 +143,7 @@ def read_signature(signature):
         tetrahedron,
         triangle,
     )
+
     return eval(signature)
 
 

@@ -1,4 +1,4 @@
-from typing import Callable, List, TypeAlias, Any, Dict
+from typing import Any, Callable, Dict, List, TypeAlias
 
 from dolfin import dx  # type: ignore
 from dolfin import (
@@ -72,7 +72,6 @@ Projector: TypeAlias = Callable[
 def mixed_space_projector(
     labels: List[str], projector: Projector
 ) -> Callable[[Any, FunctionSpace, List[DirichletBC]], Function]:
-
     def project(
         u0: Dict[str, Coefficient], V: FunctionSpace, bcs: List[DirichletBC]
     ) -> Function:

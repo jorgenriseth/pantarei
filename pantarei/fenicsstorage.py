@@ -6,6 +6,7 @@ from typing import List, Union
 
 import dolfin as df
 import numpy as np
+import h5py
 import ufl
 
 from pantarei.domain import Domain
@@ -22,8 +23,10 @@ class FenicsStorage:
             self.filepath.parent.mkdir(exist_ok=True, parents=True)
             if mode == "w" and df.MPI.comm_world.rank == 0:
                 self.filepath.unlink(missing_ok=True)
+            if mode == "a" and not self.filepath.exists():
+                self.mode = "w"
             df.MPI.comm_world.barrier()
-        self.hdf = df.HDF5File(df.MPI.comm_world, str(self.filepath), mode)
+        self.hdf = df.HDF5File(df.MPI.comm_world, str(self.filepath), self.mode)
 
     def write_domain(self, domain: df.Mesh):
         self.hdf.write(domain, "/domain/mesh")
@@ -49,10 +52,12 @@ class FenicsStorage:
         signature = self.hdf.attributes(function_name)["signature"]
         return read_signature(signature)
 
-    def write_function(self, function: df.Function, name: str):
+    def write_function(self, function: df.Function, name: str, overwrite: bool = False):
+        if overwrite:
+            delete_dataset(self, name)
         if not self.hdf.has_dataset("/domain"):
             self.write_domain(function.function_space().mesh())
-        self.hdf.write(function, f"{name}", 0.0)
+        self.hdf.write(function, name, 0.0)
 
     def read_function(self, name, domain=None, idx: int = 0):
         if domain is None:
@@ -86,15 +91,19 @@ class FenicsStorage:
                 f"Process {df.MPI.comm_world.rank} waiting for other\
                         processes before closing file."
             )
-        df.MPI.comm_world.barrier()
         self.hdf.close()
+        df.MPI.comm_world.barrier()
+        if df.MPI.comm_world.rank == 0:
+            logger.info(f"File closed, continuing.")
 
-    def to_xdmf(self, funcname: str, subnames: Union[str, List[str]]):
+    def to_xdmf(self, funcname: str, subnames: Union[str, List[str]], outputdir: Path = None):
         """FIXME: Rewrite as external function taking in a FenicsStorage object."""
+        if outputdir is None:
+            outputdir = self.filepath.parent
         xdmfs = {
             name: df.XDMFFile(
                 df.MPI.comm_world,
-                str(self.filepath.parent / "{}_{}.xdmf".format(funcname, name)),
+                str(outputdir / "{}_{}.xdmf".format(funcname, name)),
             )
             for name in flat(subnames)
         }
@@ -105,6 +114,8 @@ class FenicsStorage:
             write_to_xdmf(xdmfs, ui, ti, subnames)
         for xdmf in xdmfs.values():
             xdmf.close()
+        
+
 
     # TODO: Add proper pvd-file support.
     # Moved here from timeseriesstorage, probably needs rewrite.
@@ -127,6 +138,19 @@ class FenicsStorage:
 #     else:
 #         for uj, name in zip(u.split(deepcopy=True), names):
 #             write_to_xdmf(pvds, t, uj, name)
+
+
+
+def delete_dataset(store, dataset_name):
+    if df.MPI.comm_world.rank == 0:
+        if store.hdf.has_dataset(dataset_name):
+            with h5py.File(store.filepath, 'a') as f:
+                print("Deleting dataset", dataset_name, "from file", store.filepath, flush=True)
+                del f[dataset_name]
+    
+    # Potential for deadlock?
+    df.MPI.comm_world.barrier()
+    print("Barrier passed", flush=True)
 
 
 def read_signature(signature):

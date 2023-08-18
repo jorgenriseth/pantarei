@@ -66,7 +66,7 @@ class IndexedVariationalBoundary(IndexedBoundaryData):
     def process(
         self, U: List[Argument], V: List[Argument], domain: Mesh
     ) -> Form:
-        return self.bc.process(U, V[self.idx], domain)  # type: ignore
+        return self.bc.process(U[self.idx], V[self.idx], domain)  # type: ignore
 
 
 class NeumannBoundary(VariationalBoundary):

@@ -1,18 +1,18 @@
-from dolfin import Mesh, MeshFunction
+import dolfin as df
 
 
-class Domain(Mesh):
+class Domain(df.Mesh):
     def __init__(
-        self, mesh: Mesh, subdomains: MeshFunction, boundaries: MeshFunction
+        self, mesh: df.Mesh, subdomains: df.MeshFunction, boundaries: df.MeshFunction, **kwargs
     ):
-        super().__init__(mesh)
+        super().__init__(mesh, **kwargs)
         self.subdomains = transfer_meshfunction(self, subdomains)
         self.boundaries = transfer_meshfunction(self, boundaries)
 
 
 def transfer_meshfunction(
-    newmesh: Mesh, meshfunc: MeshFunction
-) -> MeshFunction:
-    newtags = MeshFunction("size_t", newmesh, dim=meshfunc.dim())  # type: ignore
+    newmesh: df.Mesh, meshfunc: df.MeshFunction
+) -> df.MeshFunction:
+    newtags = df.MeshFunction("size_t", newmesh, dim=meshfunc.dim())  # type: ignore
     newtags.set_values(meshfunc)  # type: ignore
     return newtags

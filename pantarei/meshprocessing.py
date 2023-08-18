@@ -14,7 +14,6 @@ from pantarei.domain import Domain
 
 logger = logging.getLogger(__name__)
 
-
 StrPath: TypeAlias = Union[str, Path]
 
 
@@ -70,6 +69,7 @@ def stl2mesh(
 
 def geo2mesh(infile, outfile, dim):
     os.system(f"gmsh -{dim} -format mesh -o {outfile} {infile}")
+
 
 
 def meshfunction_default_value(meshfunction, value: int = 0):
@@ -153,6 +153,7 @@ def xdmf2hdf(xdmfdir, hdf5file):
         f.write(mesh, "/domain/mesh")
         f.write(subdomains, "/domain/subdomains")
         f.write(boundaries, "/domain/boundaries")
+    return hdf5file
 
 
 def geo2hdf(infile, outfile, dim, tmpdir=None):

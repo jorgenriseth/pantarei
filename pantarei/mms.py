@@ -32,6 +32,7 @@ from pantarei.boundary import (
 from pantarei.domain import Domain
 from pantarei.timekeeper import TimeKeeper
 
+# 3D-mesh = df.BoxMesh(df.Point(-1, -1, -1), df.Point(1, 1, 1), 10, 10, 10)
 
 class MMSDomain(Domain):
     def __init__(self, N: int):

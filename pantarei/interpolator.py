@@ -30,7 +30,7 @@ def vectordata_interpolator(data, times):
         if t >= times[-1]:
             return data[-1].vector()
         bin = np.digitize(t, times) - 1
-        return data[bin].vector() + dudt[bin].vector() * (t - times[bin])
+        return data[bin].vector() + dudt[bin] * (t - times[bin])
 
     return call
 

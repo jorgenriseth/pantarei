@@ -1,10 +1,11 @@
+from ufl import Cell
 from ufl.finiteelement import FiniteElement, MixedElement, VectorElement
 
 
 class TaylorHood(MixedElement):
-    def __init__(self, mesh):
-        QV = VectorElement("CG", mesh.ufl_cell(), 2)
-        LP = FiniteElement("CG", mesh.ufl_cell(), 1)
+    def __init__(self, cell_type):
+        QV = VectorElement("CG", Cell(cell_type), 2)
+        LP = FiniteElement("CG", Cell(cell_type), 1)
         super().__init__([QV, LP])
 
         # Cache repr string

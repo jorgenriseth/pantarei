@@ -1,44 +1,33 @@
 from dataclasses import dataclass
 from pathlib import Path
 from typing import (
-    Any,
     Callable,
-    Dict,
     List,
     Optional,
     TypeAlias,
-    TypeVar,
-    Union,
 )
 
 import dolfin as df
-from dolfin import (
-    DirichletBC,
-    Form,
-    Function,
-    FunctionSpace,
-    Mesh,
-    assemble,
-    lhs,
-    rhs,
-    solve,
-)
-from ufl import Coefficient
+import ufl
 from ufl.finiteelement.finiteelementbase import FiniteElementBase
 
 from pantarei.boundary import BoundaryData, process_dirichlet
 from pantarei.computers import BaseComputer
 from pantarei.fenicsstorage import FenicsStorage
-from pantarei.forms import AbstractForm
+from pantarei.forms import StationaryForm, TimedependentForm
 from pantarei.timekeeper import TimeKeeper
-
-
-class ProblemSolver:
-    pass
+from pantarei.utils import CoefficientsDict, set_optional
 
 
 DolfinMatrix: TypeAlias = df.cpp.la.Matrix
 DolfinVector: TypeAlias = df.cpp.la.Vector
+InitialCondition: TypeAlias = Callable[
+    [df.FunctionSpace, List[BoundaryData]], df.Function
+]
+
+
+class ProblemSolver:
+    pass
 
 
 class StationaryProblemSolver(ProblemSolver):
@@ -48,59 +37,49 @@ class StationaryProblemSolver(ProblemSolver):
 
     def solve(
         self,
-        u: Function,
+        u: df.Function,
         A: DolfinMatrix,
         b: DolfinVector,
-        dirichlet_bcs: List[DirichletBC],
-    ) -> Function:
+        dirichlet_bcs: List[df.DirichletBC],
+    ) -> df.Function:
         for bc in dirichlet_bcs:
             bc.apply(A, b)
-        solve(A, u.vector(), b, self._method, self._precond)
+        df.solve(A, u.vector(), b, self._method, self._precond)
         return u
 
 
 def solve_stationary(
-    domain: Mesh,
+    domain: df.Mesh,
     element: FiniteElementBase,
-    coefficients: Dict[str, Coefficient],
-    form: AbstractForm,
+    coefficients: CoefficientsDict,
+    form: StationaryForm,
     boundaries: List[BoundaryData],
     solver: StationaryProblemSolver,
     name: Optional[str] = None,
-) -> Function:
-    V = FunctionSpace(domain, element)
+) -> df.Function:
+    V = df.FunctionSpace(domain, element)
+    u, v = df.TrialFunction(V), df.TestFunction(V)
     F = form(V, coefficients, boundaries)
-    dirichlet_bcs = process_dirichlet(V, domain, boundaries)
-    a = lhs(F)
-    l = rhs(F)
-    A = assemble(a)
+    dirichlet_bcs = process_dirichlet(V, boundaries)
+    a = df.lhs(F)
+    l = df.rhs(F)
+    A = df.assemble(a)
     if l.empty():  # type: ignore
-        b = Function(V).vector()
+        b = df.Function(V).vector()
     else:
-        b = assemble(l)
+        b = df.assemble(l)
 
-    u = Function(V, name=name)
+    u = df.Function(V, name=name)
     return solver.solve(u, A, b, dirichlet_bcs)
 
 
-T = TypeVar("T")
-
-
-def set_optional(
-    argument: Optional[T], classname: Callable[..., T], *args, **kwargs
-) -> T:
-    if argument is None:
-        argument = classname(*args, **kwargs)
-    return argument
-
-
 def solve_time_dependent(
-    domain: Mesh,
-    element: FiniteElementBase,
-    coefficients: Dict[str, Coefficient],
-    form: AbstractForm,
+    domain: df.Mesh,
+    element: ufl.FiniteElementBase,
+    form: TimedependentForm,
+    coefficients: CoefficientsDict,
+    initial_condition: InitialCondition,
     boundaries: List[BoundaryData],
-    initial_condition: Callable[[FunctionSpace, List[BoundaryData]], Function],
     time: TimeKeeper,
     solver: StationaryProblemSolver,
     storage: FenicsStorage,
@@ -111,29 +90,27 @@ def solve_time_dependent(
     computer = set_optional(computer, BaseComputer, {})
     name = set_optional(name, str)
 
-    V = FunctionSpace(domain, element)
-    u = Function(V, name=name)
+    V = df.FunctionSpace(domain, element)
+    u = df.Function(V, name=name)
 
-    coefficients["u0"] = initial_condition(V, boundaries)
-    if not isinstance(coefficients["u0"], Function):
-        coefficients["u0"] = df.project(coefficients["u0"], V)
-    u.assign(coefficients["u0"])
+    u0 = initial_condition(V, boundaries)
+    u.assign(u0)
     computer.compute(time, u)
     storage.write_function(u, name)
 
-    dirichlet_bcs = process_dirichlet(V, domain, boundaries)
-    F = form(V, coefficients, boundaries)
-    a = lhs(F)
-    l = rhs(F)
-    A = assemble(a)
+    dirichlet_bcs = process_dirichlet(V, boundaries)
+    F = form(V, coefficients, boundaries, u0, time.dt)
+    a = df.lhs(F)
+    l = df.rhs(F)
+    A = df.assemble(a)
 
     for ti in time:
         print_progress(float(ti), time.endtime, rank=df.MPI.comm_world.rank)
-        b = assemble(l)
+        b = df.assemble(l)
         solver.solve(u, A, b, dirichlet_bcs)
         computer.compute(ti, u)
         storage.write_checkpoint(u, name, float(time))
-        coefficients["u0"].assign(u)
+        u0.assign(u)
 
     storage.close()
     return computer
@@ -148,10 +125,10 @@ def print_progress(t, T, rank=0):
 
 @dataclass
 class StationaryProblem:
-    domain: Mesh
+    domain: df.Mesh
     element: FiniteElementBase
-    coefficients: Dict[str, Coefficient]
-    form: AbstractForm
+    coefficients: CoefficientsDict
+    form: StationaryForm
     boundaries: List[BoundaryData]
     solver: StationaryProblemSolver
     name: Optional[str] = None
@@ -166,7 +143,3 @@ class StationaryProblem:
             self.solver,
             self.name,
         )
-
-
-def trial_test_functions(form: Form):
-    return form.arguments()[1], form.arguments()[0]

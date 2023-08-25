@@ -1,5 +1,12 @@
 import dolfin as df
+import ufl
+from typing import TypeAlias, Dict
 
+
+DolfinMatrix: TypeAlias = df.cpp.la.Matrix
+DolfinVector: TypeAlias = df.cpp.la.Vector
+FormCoefficient: TypeAlias = float | ufl.Coefficient
+CoefficientsDict: TypeAlias = Dict[str, FormCoefficient]
 
 def assign_mixed_function(p, V, compartments):
     """Create a function in a mixed function-space with sub-function being
@@ -20,6 +27,11 @@ def assign_mixed_function(p, V, compartments):
 
 
 def rescale_function(u: df.Function, value: float):
+    """Rescale a function u to have integral value"""
     v = u.vector()
     v *= value / df.assemble(u * df.dx)
     return u
+
+def trial_test_functions(form: df.Form):
+    """Get the test and trial function present in a variational form."""
+    return form.arguments()[1], form.arguments()[0]

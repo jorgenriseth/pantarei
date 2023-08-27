@@ -1,14 +1,11 @@
 from typing import Callable, Dict, List, TypeAlias
 
 import dolfin as df
-from dolfin import (
-    grad,
-    inner,
-)
+from dolfin import grad, inner
 
 from pantarei.boundary import BoundaryData, process_boundary_forms
-from pantarei.utils import CoefficientsDict
 from pantarei.timekeeper import TimeDelta
+from pantarei.utils import CoefficientsDict
 
 StationaryForm: TypeAlias = Callable[
     [

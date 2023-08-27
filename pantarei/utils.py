@@ -1,7 +1,7 @@
+from typing import Callable, Dict, Optional, TypeAlias, TypeVar
+
 import dolfin as df
 import ufl
-from typing import TypeAlias, Dict, TypeVar, Optional, Callable
-
 
 DolfinMatrix: TypeAlias = df.cpp.la.Matrix
 DolfinVector: TypeAlias = df.cpp.la.Vector

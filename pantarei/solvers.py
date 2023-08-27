@@ -1,11 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import (
-    Callable,
-    List,
-    Optional,
-    TypeAlias,
-)
+from typing import Callable, List, Optional, TypeAlias
 
 import dolfin as df
 import ufl
@@ -17,7 +12,6 @@ from pantarei.fenicsstorage import FenicsStorage
 from pantarei.forms import StationaryForm, TimedependentForm
 from pantarei.timekeeper import TimeKeeper
 from pantarei.utils import CoefficientsDict, set_optional
-
 
 DolfinMatrix: TypeAlias = df.cpp.la.Matrix
 DolfinVector: TypeAlias = df.cpp.la.Vector
@@ -58,7 +52,6 @@ def solve_stationary(
     name: Optional[str] = None,
 ) -> df.Function:
     V = df.FunctionSpace(domain, element)
-    u, v = df.TrialFunction(V), df.TestFunction(V)
     F = form(V, coefficients, boundaries)
     dirichlet_bcs = process_dirichlet(V, boundaries)
     a = df.lhs(F)

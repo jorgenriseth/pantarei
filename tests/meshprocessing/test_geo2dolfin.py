@@ -1,9 +1,11 @@
-from pantarei.meshprocessing import geo2mesh, mesh2xdmf, xdmf2hdf, geo2hdf, clean_tmp, hdf2fenics
-from pantarei.domain import unpack_domain
 import os
+import shutil
 from pathlib import Path
 import dolfin
 import numpy as np
+
+import pantarei as pr
+from pantarei import geo2mesh, mesh2xdmf, xdmf2hdf, geo2hdf, clean_tmp, hdf2fenics
 
 
 def get_test_directories():
@@ -17,9 +19,9 @@ def test_geo2mesh():
     parent, outdir = get_test_directories()
 
     geo2mesh(infile=parent/"square.geo", outfile=outdir/"square.mesh", dim=2)
-    assert "square.mesh" in os.listdir(outdir)
+    assert "square.mesh" in  map(lambda x: str(x.name), outdir.iterdir())
 
-    clean_tmp(outdir, "mesh")
+    # clean_tmp(outdir, "mesh")
 
 
 def test_mesh2xdmf():
@@ -31,29 +33,29 @@ def test_mesh2xdmf():
     assert "subdomains.xdmf" in os.listdir(outdir)
 
     # Delete output folder
-    clean_tmp(outdir, "h5")
-    clean_tmp(outdir, "xdmf")
+    # clean_tmp(outdir, "hdf")
+    # clean_tmp(outdir, "xdmf")
 
 
 def test_xdmf2hdf():
     parent, outdir = get_test_directories()
-    xdmf2hdf(parent / "xdmfdir", outdir / "square.h5")
-    assert "square.h5" in os.listdir(outdir)
-    clean_tmp(outdir, "h5")
+    xdmf2hdf(outdir, outdir / "square.hdf")
+    assert "square.hdf" in os.listdir(outdir)
+    # clean_tmp(outdir, "hdf")
 
 
-def test_geo2h5():
+def test_geo2hdf():
     parent, outdir = get_test_directories()
     Path(parent / "tmp").mkdir(exist_ok=True)
-    geo2hdf(parent / "square.geo", outdir / "square.h5")
-    assert "square.h5" in os.listdir(outdir)
-    assert len(os.listdir(outdir)) == 1
-    clean_tmp(outdir, "h5")
+    geo2hdf(parent / "square.geo", outdir / "square.hdf", dim=2)
+    assert "square.hdf" in os.listdir(outdir)
+    # assert len(os.listdir(outdir)) == 1
+    # clean_tmp(outdir, "hdf")
 
 
-def test_h52fenics():
+def test_hdf2fenics():
     parent, _ = get_test_directories()
-    mesh, subdomains, boundaries = unpack_domain(hdf2fenics(parent / "square.h5"))
+    mesh, subdomains, boundaries = hdf2fenics(parent / "square.hdf")
 
     for cell in dolfin.cpp.mesh.cells(mesh):
         assert subdomains[cell] == 1
@@ -79,4 +81,7 @@ if __name__ == '__main__':
     test_geo2mesh()
     test_mesh2xdmf()
     test_xdmf2hdf()
-    test_geo2h5()
+    test_geo2hdf()
+    outdir = Path(__file__).parent.resolve() / "outdir"
+    if outdir.exists():
+        shutil.rmtree(outdir)

@@ -2,7 +2,7 @@ from pathlib import Path
 
 import dolfin as df
 import matplotlib.pyplot as plt
-from pantarei.io.fenicsstorage import FenicsStorage
+from pantarei.fenicsstorage import FenicsStorage
 
 comm = df.MPI.comm_world
 rank = comm.rank

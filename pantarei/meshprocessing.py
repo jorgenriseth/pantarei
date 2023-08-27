@@ -68,7 +68,7 @@ def stl2mesh(
 
 
 def geo2mesh(infile, outfile, dim):
-    os.system(f"gmsh -{dim} -format mesh -o {outfile} {infile}")
+    os.system(f"gmsh -{dim} -format mesh -o '{outfile}' '{infile}'")
 
 
 

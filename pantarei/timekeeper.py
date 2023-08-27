@@ -1,6 +1,7 @@
 from typing import TypeAlias
-import numpy as np
+
 import dolfin as df
+import numpy as np
 
 TimeDelta: TypeAlias = float | df.Constant
 

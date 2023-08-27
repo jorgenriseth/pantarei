@@ -1,13 +1,10 @@
 import logging
-import os
-import re
 from pathlib import Path
-from typing import List, Union
+from typing import List, Optional, Union
 
 import dolfin as df
-import numpy as np
 import h5py
-import ufl
+import numpy as np
 
 from pantarei.domain import Domain
 
@@ -96,10 +93,11 @@ class FenicsStorage:
         if df.MPI.comm_world.rank == 0:
             logger.info(f"File closed, continuing.")
 
-    def to_xdmf(self, funcname: str, subnames: Union[str, List[str]], outputdir: Path = None):
+    def to_xdmf(self, funcname: str, subnames: Union[str, List[str]], outputdir: Optional[Path] = None):
         """FIXME: Rewrite as external function taking in a FenicsStorage object."""
         if outputdir is None:
             outputdir = self.filepath.parent
+        Path(outputdir).mkdir(exist_ok=True)
         xdmfs = {
             name: df.XDMFFile(
                 df.MPI.comm_world,
@@ -190,3 +188,18 @@ def flat(pool):
         else:
             res += flat(v)
     return res
+
+
+
+class NullStorage(FenicsStorage):
+    def __init__(self):
+        pass
+
+    def write_function(self, function: df.Function, name: str, overwrite: bool = False):
+        pass
+
+    def write_checkpoint(self, function: df.Function, name: str, t: float):
+        pass
+
+    def close(self):
+        pass

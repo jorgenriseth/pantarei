@@ -5,7 +5,7 @@ import dolfin as df
 import numpy as np
 import matplotlib.pyplot as plt
 
-from pantarei.io.fenicsstorage import FenicsStorage
+from pantarei.fenicsstorage import FenicsStorage
 
 comm = df.MPI.comm_world
 rank = comm.rank

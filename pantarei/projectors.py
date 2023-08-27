@@ -28,6 +28,8 @@ def smoothing_projector(h1_weight):
         the minimization problem is solved."""
         u_ = TrialFunction(V)
         v = TestFunction(V)
+
+        # TODO: What if this projection is what causes the oscillations? Should be interp?
         u0_ = project(u, V)  # Projection of u onto V, without the bcs.
         a0 = inner(u_, v) * dx + h1_weight * inner(grad(u_), grad(v)) * dx
         L0 = inner(u0_, v) * dx + h1_weight * inner(grad(u0_), grad(v)) * dx

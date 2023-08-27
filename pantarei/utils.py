@@ -1,4 +1,13 @@
+from typing import Callable, Dict, Optional, TypeAlias, TypeVar
+
 import dolfin as df
+import ufl
+
+DolfinMatrix: TypeAlias = df.cpp.la.Matrix
+DolfinVector: TypeAlias = df.cpp.la.Vector
+FormCoefficient: TypeAlias = float | ufl.Coefficient
+CoefficientsDict: TypeAlias = Dict[str, FormCoefficient]
+T = TypeVar("T")
 
 
 def assign_mixed_function(p, V, compartments):
@@ -20,6 +29,19 @@ def assign_mixed_function(p, V, compartments):
 
 
 def rescale_function(u: df.Function, value: float):
+    """Rescale a function u to have integral value"""
     v = u.vector()
     v *= value / df.assemble(u * df.dx)
     return u
+
+def trial_test_functions(form: df.Form):
+    """Get the test and trial function present in a variational form."""
+    return form.arguments()[1], form.arguments()[0]
+
+
+def set_optional(
+    argument: Optional[T], classname: Callable[..., T], *args, **kwargs
+) -> T:
+    if argument is None:
+        argument = classname(*args, **kwargs)
+    return argument

@@ -4,7 +4,7 @@ from pathlib import Path
 import dolfin as df
 import matplotlib.pyplot as plt 
 
-from pantarei.io.fenicsstorage import FenicsStorage
+from pantarei.fenicsstorage import FenicsStorage
 
 
 def store_function():

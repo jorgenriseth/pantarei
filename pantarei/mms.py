@@ -1,24 +1,11 @@
-from abc import ABC, abstractmethod
-from dataclasses import dataclass
-from typing import Dict, List, Optional
+from typing import dict
 
 import dolfin as df
 import numpy as np
-import sympy as sp
-import ufl
 import ulfy
-from dolfin import DOLFIN_EPS, div, grad, inner
-
-from pantarei.boundary import (
-    BoundaryData,
-    BoundaryTag,
-    DirichletBoundary,
-    NeumannBoundary,
-    RobinBoundary,
-)
+from dolfin import DOLFIN_EPS
 from pantarei.domain import Domain
-from pantarei.timekeeper import TimeKeeper
-from pantarei.utils import CoefficientsDict, FormCoefficient
+from pantarei.utils import FormCoefficient
 
 # 3D-mesh = df.BoxMesh(df.Point(-1, -1, -1), df.Point(1, 1, 1), 10, 10, 10)
 
@@ -53,7 +40,7 @@ class MMSDomain(Domain):
 
 
 def mark_subdomains(
-    subdomains: Dict[int, df.CompiledSubDomain],
+    subdomains: dict[int, df.CompiledSubDomain],
     mesh: df.Mesh,
     codim: int,
     default_value: int = 0,
@@ -106,4 +93,3 @@ def expr(exp, degree, **kwargs) -> FormCoefficient:
     from a sympy-expression."""
     v = mms_placeholder()
     return ulfy.Expression(v, subs={v: exp}, degree=degree, **kwargs)  # type: ignore
-

@@ -1,5 +1,3 @@
-from typing import dict
-
 import dolfin as df
 import numpy as np
 import ulfy

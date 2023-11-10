@@ -88,13 +88,14 @@ class FenicsStorage:
         return time
 
     def close(self):
-        if df.MPI.comm_world.size > 1:
+        worldsize = df.MPI.comm_world.size
+        if worldsize > 1:
             logger.info(
-                f"Process {df.MPI.comm_world.rank} waiting for other\
+                f"Process {df.MPI.comm_world.rank}/{worldsize-1} waiting for other\
                         processes before closing file."
             )
-        self.hdf.close()
         df.MPI.comm_world.barrier()
+        self.hdf.close()
         if df.MPI.comm_world.rank == 0:
             logger.info(f"File closed, continuing.")
 

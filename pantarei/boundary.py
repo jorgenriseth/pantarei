@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Dict, List, Literal, TypeAlias
+from typing import Dict, List, Literal, TypeAlias, Optional
 
 import dolfin as df
 from dolfin import inner
@@ -12,6 +12,7 @@ BoundaryTag: TypeAlias = int | Literal["everywhere"]
 # NOTE: The choice of "everywhere" (rather than "on_boundraru") is that measures
 # accepts it as an argument for indexing subdomains, on line with integer
 # indices.
+
 
 class BoundaryData(ABC):
     def __init__(self, condition_type: str, tag: BoundaryTag):
@@ -54,8 +55,12 @@ class VariationalBoundary(BoundaryData):
     ) -> df.Form:
         pass
 
-    def process(self, u: Argument, v: Argument) -> df.Form:
-        domain = u.function_space().mesh()
+    def process(
+        self, u: Argument, v: Argument, V: Optional[df.FunctionSpace] = None
+    ) -> df.Form:
+        if V is None: 
+            V = u.function_space()
+        domain = V.mesh()
         if isinstance(domain, Domain):
             ds = df.Measure("ds", domain=domain, subdomain_data=domain.boundaries)
         else:
@@ -68,10 +73,8 @@ class IndexedVariationalBoundary(IndexedBoundaryData):
         self.idx = index
         self.bc = bc
 
-    def process(
-        self, U: list[Argument], V: list[Argument]
-    ) -> df.Form:
-        return self.bc.process(U[self.idx], V[self.idx])  
+    def process(self, U: list[Argument], V: list[Argument]) -> df.Form:
+        return self.bc.process(U[self.idx], V[self.idx], V=U.function_space())
 
     def __call__(self, U: list[Argument], V: list[Argument]):
         return self.process(U, V)
@@ -127,11 +130,13 @@ class NeumannBoundary(VariationalBoundary):
     def variational_boundary_form(
         self, _: Argument, v: Argument, ds: df.Measure
     ) -> df.Form:
-        return inner(self.uN, v) * ds(self.tag)  # type: ignore (seemingly wrong)
+        return inner(self.uN, v) * ds(self.tag)  # type: ignore 
 
 
 class RobinBoundary(VariationalBoundary):
-    def __init__(self, coeff: FormCoefficient, uR: FormCoefficient, tag: BoundaryTag, **kwargs):
+    def __init__(
+        self, coeff: FormCoefficient, uR: FormCoefficient, tag: BoundaryTag, **kwargs
+    ):
         self.a = coeff
         self.uR = uR
         super().__init__("Robin", tag=tag, **kwargs)

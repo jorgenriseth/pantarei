@@ -178,16 +178,11 @@ def delete_dataset(store, dataset_name):
     if df.MPI.comm_world.rank == 0:
         if store.hdf.has_dataset(dataset_name):
             with h5py.File(store.filepath, "a") as f:
-                print(
-                    "Deleting dataset",
-                    dataset_name,
-                    "from file",
-                    store.filepath,
-                    flush=True,
-                )
+                logger.info((
+                    f"Deleting dataset {dataset_name} form file {store.filepath}"
+                ))
                 del f[dataset_name]
     df.MPI.comm_world.barrier()
-    print("Barrier passed", flush=True)
 
 
 def read_signature(signature):

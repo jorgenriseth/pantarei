@@ -160,7 +160,7 @@ def geo2hdf(infile, outfile, dim, tmpdir=None):
     """Single file for creating h5-file from gmsh .geo file."""
     inpath = Path(infile)
     tmpdir = create_tmpdir(tmpdir)
-    meshfile = Path(f"{tmpdir}/{inpath.stem}.mesh").resolve()
+    meshfile = Path(f"{tmpdir}/{inpath.stem}.mesh")
     geo2mesh(inpath, meshfile, dim)
     mesh2xdmf(meshfile, tmpdir, dim)
     xdmf2hdf(tmpdir, outfile)
@@ -203,7 +203,7 @@ def mesh2hdf(infile, outfile, dim, tmpdir=None):
     return outfile
 
 
-def hdf2fenics(hdf5file, pack=False):
+def hdf2fenics(hdf5file, pack=False) -> Domain | tuple[Mesh, MeshFunction, MeshFunction]:
     """Function to read h5-file with annotated mesh, subdomains
     and boundaries into fenics mesh"""
     mesh = Mesh()

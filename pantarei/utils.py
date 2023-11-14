@@ -1,3 +1,4 @@
+import logging
 from typing import Callable, Dict, Optional, TypeAlias, TypeVar
 
 import dolfin as df
@@ -34,9 +35,22 @@ def rescale_function(u: df.Function, value: float):
     v *= value / df.assemble(u * df.dx)
     return u
 
+
 def trial_test_functions(form: df.Form):
     """Get the test and trial function present in a variational form."""
     return form.arguments()[1], form.arguments()[0]
+
+
+def single_logger(logger: logging.Logger, logfunc: str, logstring: str):
+    if df.MPI.comm_world.rank == 0:
+        getattr(logger, logfunc)(logstring)
+
+def rank_logger(logger: logging.Logger, logfunc: str, logstring: str):
+    getattr(logger, logfunc)(f"Process {df.MPI.comm_world.rank}: {logstring}")
+
+
+def mpi_single_process_logger(logger: logging.Logger):
+    return lambda logfunc, logstring: single_logger(logger, logfunc, logstring)
 
 
 def set_optional(

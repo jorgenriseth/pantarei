@@ -43,6 +43,7 @@ def fenicsfunc_interpolator(
 class DataInterpolator(df.Function):
     def __init__(self, data, times):
         super().__init__(data[0].function_space())
+        self.assign(data[0])
         self.interpolator = fenicsfunc_interpolator(data, times)
 
     def update(self, t: float) -> df.Function:

@@ -1,8 +1,11 @@
+import logging
+import time as pytime 
 from dataclasses import dataclass
-from pathlib import Path
+from functools import partial
 from typing import Callable, List, Optional, TypeAlias
 
 import dolfin as df
+import pantarei as pr
 import ufl
 from ufl.finiteelement.finiteelementbase import FiniteElementBase
 
@@ -11,7 +14,15 @@ from pantarei.computers import BaseComputer
 from pantarei.fenicsstorage import FenicsStorage
 from pantarei.forms import StationaryForm, TimedependentForm
 from pantarei.timekeeper import TimeKeeper
-from pantarei.utils import CoefficientsDict, set_optional
+from pantarei.utils import CoefficientsDict, set_optional, single_logger
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
+logging.getLogger("FFC").setLevel(logging.WARNING)
+logging.getLogger("UFL").setLevel(logging.WARNING)
+df.set_log_level(df.LogLevel.WARNING)
+log = partial(single_logger, logger)
+
 
 DolfinMatrix: TypeAlias = df.cpp.la.Matrix
 DolfinVector: TypeAlias = df.cpp.la.Vector
@@ -97,6 +108,7 @@ def solve_time_dependent(
     l = df.rhs(F)
     A = df.assemble(a)
 
+    tic = pytime.time()
     for ti in time:
         print_progress(float(ti), time.endtime, rank=df.MPI.comm_world.rank)
         b = df.assemble(l)
@@ -104,7 +116,10 @@ def solve_time_dependent(
         computer.compute(ti, u)
         storage.write_checkpoint(u, name, float(time))
         u0.assign(u)
-
+    logger.info("Time loop finished.")
+    toc = pytime.time()
+    df.MPI.comm_world.barrier()
+    log("info", f"Elapsed time in loop: {toc - tic:.2f} seconds.")
     storage.close()
     return computer
 

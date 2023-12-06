@@ -1,5 +1,5 @@
 import logging
-import time as pytime 
+import time as pytime
 from dataclasses import dataclass
 from functools import partial
 from typing import Callable, List, Optional, TypeAlias
@@ -17,10 +17,6 @@ from pantarei.timekeeper import TimeKeeper
 from pantarei.utils import CoefficientsDict, set_optional, single_logger
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
-logging.getLogger("FFC").setLevel(logging.WARNING)
-logging.getLogger("UFL").setLevel(logging.WARNING)
-df.set_log_level(df.LogLevel.WARNING)
 log = partial(single_logger, logger)
 
 

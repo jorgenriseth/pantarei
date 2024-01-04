@@ -11,7 +11,6 @@ import SVMTK as svmtk
 from dolfin import HDF5File, Mesh, MeshFunction, MeshValueCollection, XDMFFile
 
 from pantarei.domain import Domain
-
 logger = logging.getLogger(__name__)
 
 StrPath: TypeAlias = Union[str, Path]

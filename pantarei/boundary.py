@@ -9,9 +9,6 @@ from pantarei.domain import Domain
 from pantarei.utils import FormCoefficient
 
 BoundaryTag: TypeAlias = int | Literal["everywhere"]
-# NOTE: The choice of "everywhere" (rather than "on_boundraru") is that measures
-# accepts it as an argument for indexing subdomains, on line with integer
-# indices.
 
 
 class BoundaryData(ABC):

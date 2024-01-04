@@ -10,8 +10,13 @@ requires-python = ">=3.7"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
 ]
+dependencies = [
+    "ulfy @ git+https://github.com/MiroK/ulfy.git",
+]
+
+[project.scripts]
+mesh_quality = "pantarei._cli.mesh_quality:main"
 
 [build-system]
 requires = ["setuptools"]

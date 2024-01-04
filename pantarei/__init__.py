@@ -19,3 +19,5 @@ from pantarei.mms import *
 from pantarei.solvers import *
 from pantarei.timekeeper import *
 from pantarei.utils import *
+from pantarei.io_utils import *
+

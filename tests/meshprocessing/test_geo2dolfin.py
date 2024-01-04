@@ -9,7 +9,7 @@ from pantarei import geo2mesh, mesh2xdmf, xdmf2hdf, geo2hdf, clean_tmp, hdf2feni
 
 
 def get_test_directories():
-    parent = Path(__file__).parent.resolve()
+    parent = Path(__file__).parent
     outdir = parent / "outdir"
     outdir.mkdir(exist_ok=True)
     return parent, outdir
@@ -82,6 +82,6 @@ if __name__ == '__main__':
     test_mesh2xdmf()
     test_xdmf2hdf()
     test_geo2hdf()
-    outdir = Path(__file__).parent.resolve() / "outdir"
+    outdir = Path(__file__).parent / "outdir"
     if outdir.exists():
         shutil.rmtree(outdir)

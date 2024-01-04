@@ -8,6 +8,19 @@ import numpy as np
 import ufl
 
 from pantarei.domain import Domain
+from pantarei.io_utils import (
+    read_element,
+    read_domain,
+    write_domain,
+    write_element,
+    write_function,
+    write_checkpoint,
+    read_checkpoint,
+    read_checkpoint_time,
+    read_function,
+    read_timevector,
+)
+from pantarei.io_utils import close as hdfclose
 
 logger = logging.getLogger(__name__)
 StrPath = str | Path
@@ -27,77 +40,49 @@ class FenicsStorage:
         self.hdf = df.HDF5File(df.MPI.comm_world, str(self.filepath), self.mode)
 
     def write_domain(self, domain: df.Mesh):
-        self.hdf.write(domain, "/domain/mesh")
-        if isinstance(domain, Domain):
-            self.hdf.write(domain.subdomains, "/domain/subdomains")
-            self.hdf.write(domain.boundaries, "/domain/boundaries")
+        return write_domain(self.hdf, domain)
 
     def read_domain(self) -> Domain:
-        mesh = df.Mesh(df.MPI.comm_world)
-        self.hdf.read(mesh, "/domain/mesh", False)
-        n = mesh.topology().dim()
-        subdomains = df.MeshFunction("size_t", mesh, n)
-        boundaries = df.MeshFunction("size_t", mesh, n - 1)
-        if self.hdf.has_dataset("/domain/subdomains"):
-            self.hdf.read(subdomains, "/domain/subdomains")
-        if self.hdf.has_dataset("/domain/boundaries"):
-            self.hdf.read(boundaries, "/domain/boundaries")
-        return Domain(mesh, subdomains, boundaries)
+        return read_domain(self.hdf)
+
+    def write_element(
+        self, funcname: str, function_space: df.FunctionSpace
+    ) -> str:
+        return write_element(self.hdf, funcname, function_space)
 
     def read_element(self, function_name: str) -> ufl.FiniteElementBase:
-        signature = self.hdf.attributes(function_name)["signature"]
-        return read_signature(signature)
+        return read_element(self.hdf, function_name)
 
     def write_function(
         self, function: df.Function, name: str, overwrite: bool = False
     ):
         if overwrite:
-            delete_dataset(self, name)
-        if not self.hdf.has_dataset("/domain"):
-            self.write_domain(function.function_space().mesh())
-        self.hdf.write(function, name, 0.0)
+            return write_function(self.hdf, function, name, self.filepath)
+        return write_function(self.hdf, function, name)
 
     def read_function(
         self, name: str, domain: Optional[df.Mesh] = None, idx: int = 0
     ):
-        if domain is None:
-            domain = self.read_domain()
-        element = self.read_element(name)
-        V = df.FunctionSpace(domain, element)
-        u = df.Function(V, name=name)
-        self.hdf.read(u, f"{name}/vector_{idx}")
-        return u
+        return read_function(self.hdf, name, domain, idx)
 
-    def write_checkpoint(self, function: df.Function, name: str, t: float):
-        self.hdf.write(function, name, t)
+    def write_checkpoint(
+        self, function: df.Function, name: str, t: float
+    ) -> None:
+        write_checkpoint(self.hdf, function, name, t)
 
     def read_checkpoint(
         self, u: df.Function, name: str, idx: int
     ) -> df.Function:
-        self.hdf.read(u, f"{name}/vector_{idx}")
-        return u
+        return read_checkpoint(self.hdf, u, name, idx)
 
     def read_checkpoint_time(self, name: str, idx: int) -> float:
-        return self.hdf.attributes(f"{name}/vector_{idx}")["timestamp"]
+        return read_checkpoint_time(self.hdf, name, idx)
 
     def read_timevector(self, function_name: str) -> np.ndarray:
-        num_entries = int(self.hdf.attributes(function_name)["count"])
-        time = np.zeros(num_entries)
-        for i in range(num_entries):
-            time[i] = self.read_checkpoint_time(function_name, i)
-        return time
+        return read_timevector(self.hdf, function_name)
 
     def close(self):
-        worldsize = df.MPI.comm_world.size
-        if worldsize > 1:
-            logger.info(
-                f"Process {df.MPI.comm_world.rank}/{worldsize-1} waiting for other\
-                        processes before closing file."
-            )
-        df.MPI.comm_world.barrier()
-        self.hdf.close()
-        if df.MPI.comm_world.rank == 0:
-            logger.info(f"File closed, continuing.")
+        hdfclose(self.hdf)
 
     def to_xdmf(
         self,
@@ -172,35 +157,6 @@ def fenicsstorage2pvd(
 
     for pvd in pvds.values():
         pvd.close()
-
-
-def delete_dataset(store, dataset_name):
-    if df.MPI.comm_world.rank == 0:
-        if store.hdf.has_dataset(dataset_name):
-            with h5py.File(store.filepath, "a") as f:
-                logger.info((
-                    f"Deleting dataset {dataset_name} form file {store.filepath}"
-                ))
-                del f[dataset_name]
-    df.MPI.comm_world.barrier()
-
-
-def read_signature(signature):
-    # Imported here since the signature require functions without namespace
-    # but we want to avoid them in global scope.
-    from dolfin import (
-        FiniteElement,
-        MixedElement,
-        TensorElement,
-        VectorElement,
-        hexahedron,
-        interval,
-        quadrilateral,
-        tetrahedron,
-        triangle,
-    )
-
-    return eval(signature)
 
 
 def write_to_xdmf(xdmfs, u, t, names):

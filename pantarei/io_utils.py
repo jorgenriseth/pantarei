@@ -91,15 +91,15 @@ def read_timevector(hdf, function_name: str) -> np.ndarray:
 
 
 def close(hdf) -> None:
-    if df.MPI.comm_world.size > 1:
+    worldsize = df.MPI.comm_world.size
+    if worldsize > 1:
         logger.debug(
-            f"Process {df.MPI.comm_world.rank} waiting for other\
+            f"Process {df.MPI.comm_world.rank}/{worldsize-1} waiting for other\
                     processes before closing file."
         )
     hdf.close()
-    df.MPI.comm_world.barrier()
     if df.MPI.comm_world.rank == 0:
-        logger.debug("File closed, continuing.")
+        logger.debug(f"File closed, continuing.")
 
 
 def delete_dataset(hdf: df.HDF5File, filename: PathLike, dataset_name: str):

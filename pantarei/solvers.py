@@ -5,7 +5,6 @@ from functools import partial
 from typing import Callable, List, Optional, TypeAlias
 
 import dolfin as df
-import ufl
 from ufl.finiteelement.finiteelementbase import FiniteElementBase
 
 import pantarei as pr

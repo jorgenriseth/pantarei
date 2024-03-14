@@ -3,7 +3,6 @@ from pathlib import Path
 from typing import Callable, List, Optional, Union
 
 import dolfin as df
-import h5py
 import numpy as np
 import ufl
 

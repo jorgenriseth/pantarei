@@ -3,7 +3,11 @@ import dolfin as df
 
 class Domain(df.Mesh):
     def __init__(
-        self, mesh: df.Mesh, subdomains: df.MeshFunction, boundaries: df.MeshFunction, **kwargs
+        self,
+        mesh: df.Mesh,
+        subdomains: df.MeshFunction,
+        boundaries: df.MeshFunction,
+        **kwargs,
     ):
         super().__init__(mesh, **kwargs)
         self.subdomains = transfer_meshfunction(self, subdomains)

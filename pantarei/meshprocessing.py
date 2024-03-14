@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import glob
-import logging
 import os
 import uuid
 from pathlib import Path
@@ -9,9 +8,10 @@ from typing import Optional, TypeAlias, Union
 import meshio
 import SVMTK as svmtk
 from dolfin import HDF5File, Mesh, MeshFunction, MeshValueCollection, XDMFFile
+from loguru import logger
 
 from pantarei.domain import Domain
-logger = logging.getLogger(__name__)
+
 
 StrPath: TypeAlias = Union[str, Path]
 
@@ -70,7 +70,6 @@ def geo2mesh(infile, outfile, dim):
     os.system(f"gmsh -{dim} -format mesh -o '{outfile}' '{infile}'")
 
 
-
 def meshfunction_default_value(meshfunction, value: int = 0):
     """Sets the default value for a MeshFunctionSize_t created from a
     MeshValueCollection"""
@@ -107,9 +106,7 @@ def meshio2xdmf(mesh, xdmfdir, dim):
     meshio.write("{}/mesh.xdmf".format(xdmfdir), meshdata)
     if "gmsh:physical" or "medit:ref" in mesh.cell_data_dict:
         cell_data_name = (
-            "gmsh:physical"
-            if "gmsh:physical" in mesh.cell_data_dict
-            else "medit:ref"
+            "gmsh:physical" if "gmsh:physical" in mesh.cell_data_dict else "medit:ref"
         )
         # Write the subdomains of the mesh
         subdomains = {
@@ -119,9 +116,7 @@ def meshio2xdmf(mesh, xdmfdir, dim):
         meshio.write("{}/subdomains.xdmf".format(xdmfdir), subdomainfile)
 
         # Write the boundaries/interfaces of the mesh
-        boundaries = {
-            "boundaries": [mesh.cell_data_dict[cell_data_name][facet_label]]
-        }
+        boundaries = {"boundaries": [mesh.cell_data_dict[cell_data_name][facet_label]]}
         boundaryfile = meshio.Mesh(points, facets, cell_data=boundaries)
         meshio.write("{}/boundaries.xdmf".format(xdmfdir), boundaryfile)
 
@@ -202,7 +197,9 @@ def mesh2hdf(infile, outfile, dim, tmpdir=None):
     return outfile
 
 
-def hdf2fenics(hdf5file, pack=False) -> Domain | tuple[Mesh, MeshFunction, MeshFunction]:
+def hdf2fenics(
+    hdf5file, pack=False
+) -> Domain | tuple[Mesh, MeshFunction, MeshFunction]:
     """Function to read h5-file with annotated mesh, subdomains
     and boundaries into fenics mesh"""
     mesh = Mesh()

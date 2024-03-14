@@ -1,26 +1,26 @@
 import logging
 from pathlib import Path
-from typing import List, Optional, Union, Callable
+from typing import Callable, List, Optional, Union
 
 import dolfin as df
-import h5py
 import numpy as np
 import ufl
 
 from pantarei.domain import Domain
+from pantarei.io_utils import close as hdfclose
 from pantarei.io_utils import (
-    read_element,
+    read_checkpoint,
+    read_checkpoint_time,
     read_domain,
+    read_element,
+    read_function,
+    read_timevector,
+    write_checkpoint,
     write_domain,
     write_element,
     write_function,
-    write_checkpoint,
-    read_checkpoint,
-    read_checkpoint_time,
-    read_function,
-    read_timevector,
 )
-from pantarei.io_utils import close as hdfclose
+from pantarei.utils import print_progress
 
 logger = logging.getLogger(__name__)
 StrPath = str | Path
@@ -45,34 +45,24 @@ class FenicsStorage:
     def read_domain(self) -> Domain:
         return read_domain(self.hdf)
 
-    def write_element(
-        self, funcname: str, function_space: df.FunctionSpace
-    ) -> str:
+    def write_element(self, funcname: str, function_space: df.FunctionSpace) -> str:
         return write_element(self.hdf, funcname, function_space)
 
     def read_element(self, function_name: str) -> ufl.FiniteElementBase:
         return read_element(self.hdf, function_name)
 
-    def write_function(
-        self, function: df.Function, name: str, overwrite: bool = False
-    ):
+    def write_function(self, function: df.Function, name: str, overwrite: bool = False):
         if overwrite:
             return write_function(self.hdf, function, name, self.filepath)
         return write_function(self.hdf, function, name)
 
-    def read_function(
-        self, name: str, domain: Optional[df.Mesh] = None, idx: int = 0
-    ):
+    def read_function(self, name: str, domain: Optional[df.Mesh] = None, idx: int = 0):
         return read_function(self.hdf, name, domain, idx)
 
-    def write_checkpoint(
-        self, function: df.Function, name: str, t: float
-    ) -> None:
+    def write_checkpoint(self, function: df.Function, name: str, t: float) -> None:
         write_checkpoint(self.hdf, function, name, t)
 
-    def read_checkpoint(
-        self, u: df.Function, name: str, idx: int
-    ) -> df.Function:
+    def read_checkpoint(self, u: df.Function, name: str, idx: int) -> df.Function:
         return read_checkpoint(self.hdf, u, name, idx)
 
     def read_checkpoint_time(self, name: str, idx: int) -> float:
@@ -108,9 +98,7 @@ def fenicsstorage2xdmf(
     outputpattern: Optional[Path | Callable[[str], Path]] = None,
 ):
     if outputpattern is None:
-        outputpattern = (
-            lambda x: storage.filepath.parent / f"{funcname}_{x}.xdmf"
-        )
+        outputpattern = lambda x: storage.filepath.parent / f"{funcname}_{x}.xdmf"
     elif isinstance(outputpattern, Path) or isinstance(outputpattern, str):
         temppath = Path(outputpattern)
         outputpattern = lambda x: temppath / f"{funcname}_{x}.xdmf"
@@ -122,9 +110,17 @@ def fenicsstorage2xdmf(
         filename.parent.mkdir(exist_ok=True, parents=True)
         xdmfs[name] = df.XDMFFile(df.MPI.comm_world, str(filename))
 
-    times = storage.read_timevector(funcname)
+    try:
+        times = storage.read_timevector(funcname)
+    except RuntimeError as e:
+        print(str())
+        if "HDF5 attribute type unknown" in str(e):
+            times = np.array([0.0])
+        else:
+            raise e
     ui = storage.read_function(funcname)
     for idx, ti in enumerate(times):
+        print_progress(idx, len(times), rank=df.MPI.comm_world.rank)
         ui = storage.read_checkpoint(ui, funcname, idx)
         write_to_xdmf(xdmfs, ui, ti, subnames)
 
@@ -139,9 +135,7 @@ def fenicsstorage2pvd(
     outputpattern: Optional[Callable[[str], Path]] = None,
 ):
     if outputpattern is None:
-        outputpattern = (
-            lambda x: storage.filepath.parent / f"{funcname}_{x}.xdmf"
-        )
+        outputpattern = lambda x: storage.filepath.parent / f"{funcname}_{x}.xdmf"
     flattened = flat(subnames)
     pvds = {}
     for name in flattened:
@@ -193,9 +187,7 @@ class NullStorage(FenicsStorage):
     def __init__(self):
         pass
 
-    def write_function(
-        self, function: df.Function, name: str, overwrite: bool = False
-    ):
+    def write_function(self, function: df.Function, name: str, overwrite: bool = False):
         pass
 
     def write_checkpoint(self, function: df.Function, name: str, t: float):

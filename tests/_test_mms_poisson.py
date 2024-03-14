@@ -6,22 +6,25 @@ import matplotlib.pyplot as plt
 from pantarei.mms import sdiv, sgrad
 from ufl import inner, grad
 
+
 def poisson_form(V, coefficients, boundaries):
     u = df.TrialFunction(V)
     v = df.TestFunction(V)
     dx = df.Measure("dx", V.mesh())
-    f = (coefficients["source"] if "source" in coefficients else 0)
+    f = coefficients["source"] if "source" in coefficients else 0
     return (
-        inner(grad(u), grad(v)) * dx - f * v * dx 
+        inner(grad(u), grad(v)) * dx
+        - f * v * dx
         - pr.process_boundary_forms(u, v, boundaries)
     )
+
 
 def test_poisson():
     x, y = sp.symbols("x y ")
     u = x**2 + y**2
     f = -sdiv(sgrad(u))
 
-    degree=2
+    degree = 2
     aR = 1.0
     domain = pr.MMSDomain(2)
     uN = pr.sp_neumann_boundary(u, domain.normals)
@@ -44,7 +47,7 @@ def test_poisson():
         form=poisson_form,
         boundaries=boundaries,
         solver=pr.StationaryProblemSolver(),
-        name="Poisson"
+        name="Poisson",
     )
 
     assert df.errornorm(pr.expr(u, 5), uh, norm_type="H1") < 1e-12

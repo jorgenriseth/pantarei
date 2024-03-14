@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Dict, List, Literal, TypeAlias, Optional
+from typing import Dict, List, Literal, Optional, TypeAlias
 
 import dolfin as df
 from dolfin import inner
@@ -55,7 +55,7 @@ class VariationalBoundary(BoundaryData):
     def process(
         self, u: Argument, v: Argument, V: Optional[df.FunctionSpace] = None
     ) -> df.Form:
-        if V is None: 
+        if V is None:
             V = u.function_space()
         domain = V.mesh()
         if isinstance(domain, Domain):
@@ -102,7 +102,7 @@ def process_boundary_forms(
 
 
 def indexed_boundary_conditions(
-    bcs: Dict[int, List[BoundaryData]]
+    bcs: Dict[int, List[BoundaryData]],
 ) -> List[IndexedBoundaryData]:
     bcs_out = []
     for idx, idx_bcs in bcs.items():
@@ -127,12 +127,16 @@ class NeumannBoundary(VariationalBoundary):
     def variational_boundary_form(
         self, _: Argument, v: Argument, ds: df.Measure
     ) -> df.Form:
-        return inner(self.uN, v) * ds(self.tag)  # type: ignore 
+        return inner(self.uN, v) * ds(self.tag)  # type: ignore
 
 
 class RobinBoundary(VariationalBoundary):
     def __init__(
-        self, coeff: FormCoefficient, uR: FormCoefficient, tag: BoundaryTag, **kwargs
+        self,
+        coeff: FormCoefficient,
+        uR: FormCoefficient,
+        tag: BoundaryTag,
+        **kwargs,
     ):
         self.a = coeff
         self.uR = uR

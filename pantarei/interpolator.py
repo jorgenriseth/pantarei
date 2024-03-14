@@ -1,8 +1,11 @@
+from pathlib import Path
 from typing import Callable
+
 import dolfin as df
 import numpy as np
-
 from ufl.algebra import Sum
+
+from pantarei.io_utils import read_function, read_timevector
 
 
 def vectordata_interpolator(
@@ -42,6 +45,8 @@ def fenicsfunc_interpolator(
 
 class DataInterpolator(df.Function):
     def __init__(self, data, times):
+        self.times = times.copy()
+        self.data = data
         super().__init__(data[0].function_space())
         self.assign(data[0])
         self.interpolator = fenicsfunc_interpolator(data, times)
@@ -49,3 +54,17 @@ class DataInterpolator(df.Function):
     def update(self, t: float) -> df.Function:
         self.assign(self.interpolator(t))
         return self
+
+
+def interpolate_from_file(filepath: Path, funcname: str, t: float):
+    with df.HDF5File(df.MPI.comm_world, str(filepath), "r") as hdf:
+        tvec = read_timevector(hdf, funcname)
+        bin = np.digitize(t, tvec) - 1
+        C = [
+            read_function(hdf, funcname, idx=i)
+            for i in range(tvec.size)[bin : bin + 2]
+        ]
+    interpolator = vectordata_interpolator(C, tvec[bin : bin + 2])
+    u = df.Function(C[0].function_space())
+    u.vector()[:] = interpolator(t)
+    return u

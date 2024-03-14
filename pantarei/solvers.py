@@ -5,10 +5,9 @@ from functools import partial
 from typing import Callable, List, Optional, TypeAlias
 
 import dolfin as df
-import pantarei as pr
-import ufl
 from ufl.finiteelement.finiteelementbase import FiniteElementBase
 
+import pantarei as pr
 from pantarei.boundary import BoundaryData, process_dirichlet
 from pantarei.computers import BaseComputer
 from pantarei.fenicsstorage import FenicsStorage
@@ -74,8 +73,7 @@ def solve_stationary(
 
 
 def solve_time_dependent(
-    domain: df.Mesh,
-    element: ufl.FiniteElementBase,
+    V: df.FunctionSpace,
     form: TimedependentForm,
     coefficients: CoefficientsDict,
     initial_condition: InitialCondition,
@@ -90,9 +88,7 @@ def solve_time_dependent(
     computer = set_optional(computer, BaseComputer, {})
     name = set_optional(name, str)
 
-    V = df.FunctionSpace(domain, element)
     u = df.Function(V, name=name)
-
     u0 = initial_condition(V, boundaries)
     u.assign(u0)
     computer.compute(time, u)
@@ -118,13 +114,6 @@ def solve_time_dependent(
     log("info", f"Elapsed time in loop: {toc - tic:.2f} seconds.")
     storage.close()
     return computer
-
-
-def print_progress(t, T, rank=0):
-    if rank != 0:
-        return
-    progress = int(20 * t / T)
-    print(f"[{'=' * progress}{' ' * (20 - progress)}]", end="\r", flush=True)
 
 
 @dataclass

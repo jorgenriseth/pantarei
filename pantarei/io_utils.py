@@ -2,11 +2,10 @@ from os import PathLike
 from typing import Optional
 
 import dolfin as df
-import ufl
-import numpy as np
 import h5py
+import numpy as np
+import ufl
 from loguru import logger
-
 
 from pantarei.domain import Domain
 
@@ -39,13 +38,13 @@ def write_element(
     return signature
 
 
-def read_element(hdf, function_name: str) -> ufl.FiniteElementBase:
+def read_element(hdf: df.HDF5File, function_name: str) -> ufl.FiniteElementBase:
     signature = hdf.attributes(function_name)["signature"]
     return read_signature(signature)
 
 
 def write_function(
-    hdf,
+    hdf: df.HDF5File,
     function: df.Function,
     name: str,
     filename_overwrite: Optional[PathLike] = None,
@@ -58,7 +57,7 @@ def write_function(
 
 
 def read_function(
-    hdf, name: str, domain: Optional[df.Mesh] = None, idx: int = 0
+    hdf: df.HDF5File, name: str, domain: Optional[df.Mesh] = None, idx: int = 0
 ):
     if domain is None:
         domain = read_domain(hdf)
@@ -69,20 +68,24 @@ def read_function(
     return u
 
 
-def write_checkpoint(hdf, function: df.Function, name: str, t: float):
+def write_checkpoint(
+    hdf: df.HDF5File, function: df.Function, name: str, t: float
+):
     hdf.write(function, name, t)
 
 
-def read_checkpoint(hdf, u: df.Function, name: str, idx: int) -> df.Function:
+def read_checkpoint(
+    hdf: df.HDF5File, u: df.Function, name: str, idx: int
+) -> df.Function:
     hdf.read(u, f"{name}/vector_{idx}")
     return u
 
 
-def read_checkpoint_time(hdf, name: str, idx: int) -> float:
+def read_checkpoint_time(hdf: df.HDF5File, name: str, idx: int) -> float:
     return hdf.attributes(f"{name}/vector_{idx}")["timestamp"]
 
 
-def read_timevector(hdf, function_name: str) -> np.ndarray:
+def read_timevector(hdf: df.HDF5File, function_name: str) -> np.ndarray:
     num_entries = int(hdf.attributes(function_name)["count"])
     time = np.zeros(num_entries)
     for i in range(num_entries):
@@ -90,7 +93,7 @@ def read_timevector(hdf, function_name: str) -> np.ndarray:
     return time
 
 
-def close(hdf) -> None:
+def close(hdf: df.HDF5File) -> None:
     worldsize = df.MPI.comm_world.size
     if worldsize > 1:
         logger.debug(

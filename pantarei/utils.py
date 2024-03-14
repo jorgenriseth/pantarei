@@ -173,3 +173,10 @@ def latex_footer():
     \label{table: mesh info}
 \end{table}
 """
+
+
+def print_progress(t, T, rank=0):
+    if rank != 0:
+        return
+    progress = int(20 * t / T)
+    print(f"[{'=' * progress}{' ' * (20 - progress)}]", end="\r", flush=True)

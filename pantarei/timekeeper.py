@@ -5,6 +5,7 @@ import numpy as np
 
 TimeDelta: TypeAlias = float | df.Constant
 
+
 class TimeKeeper(df.Constant):
     def __init__(self, dt: TimeDelta, endtime: float):
         self.iter = 0

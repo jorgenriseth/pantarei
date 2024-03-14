@@ -1,0 +1,40 @@
+{% set pyproject = load_file_data('pyproject.toml') %}
+
+package:
+  name: pantarei
+  version: {{ pyproject["project"]['version'] }}
+
+source:
+  path: .
+
+build:
+  noarch: python
+  number: 0 
+  script: python -m pip install --no-deps --ignore-installed . -vv
+
+requirements:
+  host:
+    - python >=3.7
+    - pip
+  run:
+    - python >=3.7
+    - fenics
+    # dependencies are defined in pyproject.toml
+    {% for dep in pyproject["project"]["dependencies"] %}
+    - {{ dep.lower() }}
+    {% endfor %}
+
+test:
+  source_files:
+    - tests
+  requires:
+    - pytest
+    - pytest-cov
+  commands:
+    - pytest
+
+about:
+  home: https://github.com/jorgenriseth/jr-trapezoid
+  license: {{ pyproject.get('license') }}
+  license_file: LICENSE
+

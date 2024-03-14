@@ -1,8 +1,8 @@
 [project]
 name = "pantarei"
-version = "0.1.0"
+version = "0.3.0"
 authors = [
-  { name="Jørgen Riseth", email="author@example.com" },
+  { name="Jørgen Riseth", email="jnriseth@gmail.com" },
 ]
 description = "Miscellaneous fenics/dolfin utilities that are used in various projects."
 readme = "README.md"
@@ -12,7 +12,13 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
 ]
 dependencies = [
-    "ulfy @ git+https://github.com/MiroK/ulfy.git",
+  "h5py",
+  "numpy",
+  "matplotlib",
+  "meshio",
+  "svmtk",
+  "loguru",
+  "sympy"
 ]
 
 [project.scripts]

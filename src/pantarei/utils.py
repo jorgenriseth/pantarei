@@ -16,14 +16,11 @@ def assign_mixed_function(p, V, compartments):
     assigned from a dictionray of functions living in the subspaces."""
     P = df.Function(V)
     for j in compartments:
-        if not j in p:
+        if j not in p:
             raise KeyError(f"Missing key {j} in p; p.keys() = {p.keys()}")
 
     subspaces = [V.sub(idx).collapse() for idx, _ in enumerate(compartments)]
-    Pint = [
-        df.interpolate(p[j], subspaces[idx])
-        for idx, j in enumerate(compartments)
-    ]
+    Pint = [df.interpolate(p[j], subspaces[idx]) for idx, j in enumerate(compartments)]
     assigner = df.FunctionAssigner(V, subspaces)
     assigner.assign(P, Pint)
     return P
@@ -122,9 +119,7 @@ def as_latex_table(
     str_out = (
         latex_header()
         + 3 * indent
-        + latex_row(
-            num_cells, num_vertices, min_diameter, max_diameter, decimals
-        )
+        + latex_row(num_cells, num_vertices, min_diameter, max_diameter, decimals)
         + latex_footer()
     )
     return str_out

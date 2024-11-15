@@ -68,9 +68,7 @@ def read_function(
     return u
 
 
-def write_checkpoint(
-    hdf: df.HDF5File, function: df.Function, name: str, t: float
-):
+def write_checkpoint(hdf: df.HDF5File, function: df.Function, name: str, t: float):
     hdf.write(function, name, t)
 
 
@@ -102,16 +100,14 @@ def close(hdf: df.HDF5File) -> None:
         )
     hdf.close()
     if df.MPI.comm_world.rank == 0:
-        logger.debug(f"File closed, continuing.")
+        logger.debug("File closed, continuing.")
 
 
 def delete_dataset(hdf: df.HDF5File, filename: PathLike, dataset_name: str):
     if df.MPI.comm_world.rank == 0:
         if hdf.has_dataset(dataset_name):
             with h5py.File(filename, "a") as f:
-                logger.info(
-                    (f"Deleting dataset {dataset_name} form file {filename}")
-                )
+                logger.info((f"Deleting dataset {dataset_name} form file {filename}"))
                 del f[dataset_name]
     df.MPI.comm_world.barrier()
 

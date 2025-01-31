@@ -3,8 +3,8 @@ requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "pantarei"
-version = "0.5.1"
+name = "panta-rhei"
+version = "0.6.0"
 description = "Miscellaneous fenics/dolfin utilities that are used in various projects."
 authors = [
   { name="Jørgen Riseth", email="jnriseth@gmail.com" },
@@ -22,7 +22,6 @@ dependencies = [
   "meshio[all]",
   "numpy",
   "gmsh",
-  "h5py>=3.12.1",
 ]
 
 [tool.setuptools]

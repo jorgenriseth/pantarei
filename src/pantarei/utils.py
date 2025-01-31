@@ -3,6 +3,7 @@ from typing import Callable, Dict, Optional, TypeAlias, TypeVar
 
 import dolfin as df
 import ufl
+import numpy as np
 
 DolfinMatrix: TypeAlias = df.cpp.la.Matrix
 DolfinVector: TypeAlias = df.cpp.la.Vector
@@ -16,14 +17,11 @@ def assign_mixed_function(p, V, compartments):
     assigned from a dictionray of functions living in the subspaces."""
     P = df.Function(V)
     for j in compartments:
-        if not j in p:
+        if j not in p:
             raise KeyError(f"Missing key {j} in p; p.keys() = {p.keys()}")
 
     subspaces = [V.sub(idx).collapse() for idx, _ in enumerate(compartments)]
-    Pint = [
-        df.interpolate(p[j], subspaces[idx])
-        for idx, j in enumerate(compartments)
-    ]
+    Pint = [df.interpolate(p[j], subspaces[idx]) for idx, j in enumerate(compartments)]
     assigner = df.FunctionAssigner(V, subspaces)
     assigner.assign(P, Pint)
     return P
@@ -122,9 +120,7 @@ def as_latex_table(
     str_out = (
         latex_header()
         + 3 * indent
-        + latex_row(
-            num_cells, num_vertices, min_diameter, max_diameter, decimals
-        )
+        + latex_row(num_cells, num_vertices, min_diameter, max_diameter, decimals)
         + latex_footer()
     )
     return str_out
@@ -180,3 +176,32 @@ def print_progress(t, T, rank=0):
         return
     progress = int(20 * t / T)
     print(f"[{'=' * progress}{' ' * (20 - progress)}]", end="\r", flush=True)
+
+
+def subspace_local_dofs(W: df.FunctionSpace, idx: int):
+    mesh = W.mesh()
+    dofs = W.sub(idx).dofmap().entity_closure_dofs(mesh, mesh.topology().dim())
+    dofs = np.sort(np.unique(dofs))
+    return dofs
+
+
+def total_concentration(
+    W: df.FunctionSpace, phi: dict[str, float], compartments: list[str]
+):
+    uT = df.Function(W.sub(0).collapse())
+    N = len(compartments)
+    dofs = [subspace_local_dofs(W, idx) for idx in range(N)]
+
+    def call(u: df.Function):
+        uT.vector().set_local(
+            sum(
+                (
+                    phi[i] * u.vector().get_local(dofs[idx])
+                    for idx, i in enumerate(compartments)
+                )
+            )
+        )
+        uT.vector().apply("insert")
+        return uT
+
+    return call

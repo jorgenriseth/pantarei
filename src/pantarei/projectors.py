@@ -66,9 +66,7 @@ def rescale_function(u: Function, value: float) -> Function:
     return u
 
 
-Projector: TypeAlias = Callable[
-    [Any, FunctionSpace, List[DirichletBC]], Function
-]
+Projector: TypeAlias = Callable[[Any, FunctionSpace, List[DirichletBC]], Function]
 
 
 def mixed_space_projector(

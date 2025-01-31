@@ -171,3 +171,7 @@ cython_debug/
 .idea/vcs.xml
 .idea/inspectionProfiles/profiles_settings.xml
 .vscode/settings.json
+
+# pixi environments
+.pixi
+*.egg-info

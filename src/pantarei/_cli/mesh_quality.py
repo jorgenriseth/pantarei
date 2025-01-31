@@ -48,19 +48,9 @@ def as_latex_table(
     str_out = (
         latex_header()
         + 3 * indent
-        + latex_row(
-            num_cells, num_vertices, min_diameter, max_diameter, decimals
-        )
+        + latex_row(num_cells, num_vertices, min_diameter, max_diameter, decimals)
         + latex_footer()
     )
-    # print(latex_header())
-    # print(
-    #     3 * indent
-    #     + latex_row(
-    #         num_cells, num_vertices, min_diameter, max_diameter, decimals
-    #     )
-    # )
-    # print(latex_footer())
     print(str_out)
 
 

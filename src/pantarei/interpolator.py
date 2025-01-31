@@ -61,8 +61,7 @@ def interpolate_from_file(filepath: Path, funcname: str, t: float):
         tvec = read_timevector(hdf, funcname)
         bin = np.digitize(t, tvec) - 1
         C = [
-            read_function(hdf, funcname, idx=i)
-            for i in range(tvec.size)[bin : bin + 2]
+            read_function(hdf, funcname, idx=i) for i in range(tvec.size)[bin : bin + 2]
         ]
     interpolator = vectordata_interpolator(C, tvec[bin : bin + 2])
     u = df.Function(C[0].function_space())

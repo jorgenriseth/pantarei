@@ -18,8 +18,8 @@ def get_test_directories():
 def test_geo2mesh():
     parent, outdir = get_test_directories()
 
-    geo2mesh(infile=parent/"square.geo", outfile=outdir/"square.mesh", dim=2)
-    assert "square.mesh" in  map(lambda x: str(x.name), outdir.iterdir())
+    geo2mesh(infile=parent / "square.geo", outfile=outdir / "square.mesh", dim=2)
+    assert "square.mesh" in map(lambda x: str(x.name), outdir.iterdir())
 
     # clean_tmp(outdir, "mesh")
 
@@ -62,22 +62,18 @@ def test_hdf2fenics():
 
     for edge in dolfin.cpp.mesh.edges(mesh):
         if boundaries[edge] == 1:
-            assert np.allclose(edge.midpoint().array(),
-                               np.array([0.5, 0., 0.]))
+            assert np.allclose(edge.midpoint().array(), np.array([0.5, 0.0, 0.0]))
         elif boundaries[edge] == 2:
-            assert np.allclose(edge.midpoint().array(),
-                               np.array([1., 0.5, 0.]))
+            assert np.allclose(edge.midpoint().array(), np.array([1.0, 0.5, 0.0]))
         elif boundaries[edge] == 3:
-            assert np.allclose(edge.midpoint().array(),
-                               np.array([0.5, 1., 0.]))
+            assert np.allclose(edge.midpoint().array(), np.array([0.5, 1.0, 0.0]))
         elif boundaries[edge] == 4:
-            assert np.allclose(edge.midpoint().array(),
-                               np.array([0., 0.5, 0.]))
+            assert np.allclose(edge.midpoint().array(), np.array([0.0, 0.5, 0.0]))
         else:
             assert boundaries[edge] == 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     test_geo2mesh()
     test_mesh2xdmf()
     test_xdmf2hdf()

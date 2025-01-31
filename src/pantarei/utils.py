@@ -3,6 +3,7 @@ from typing import Callable, Dict, Optional, TypeAlias, TypeVar
 
 import dolfin as df
 import ufl
+import numpy as np
 
 DolfinMatrix: TypeAlias = df.cpp.la.Matrix
 DolfinVector: TypeAlias = df.cpp.la.Vector
@@ -175,3 +176,32 @@ def print_progress(t, T, rank=0):
         return
     progress = int(20 * t / T)
     print(f"[{'=' * progress}{' ' * (20 - progress)}]", end="\r", flush=True)
+
+
+def subspace_local_dofs(W: df.FunctionSpace, idx: int):
+    mesh = W.mesh()
+    dofs = W.sub(idx).dofmap().entity_closure_dofs(mesh, mesh.topology().dim())
+    dofs = np.sort(np.unique(dofs))
+    return dofs
+
+
+def total_concentration(
+    W: df.FunctionSpace, phi: dict[str, float], compartments: list[str]
+):
+    uT = df.Function(W.sub(0).collapse())
+    N = len(compartments)
+    dofs = [subspace_local_dofs(W, idx) for idx in range(N)]
+
+    def call(u: df.Function):
+        uT.vector().set_local(
+            sum(
+                (
+                    phi[i] * u.vector().get_local(dofs[idx])
+                    for idx, i in enumerate(compartments)
+                )
+            )
+        )
+        uT.vector().apply("insert")
+        return uT
+
+    return call

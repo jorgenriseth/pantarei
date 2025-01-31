@@ -6,7 +6,7 @@ from dolfin import Function
 from pantarei.timekeeper import TimeKeeper
 
 
-class NullComputer():
+class NullComputer:
     def compute(self, *args, **kwargs):
         pass
 
@@ -14,6 +14,7 @@ class NullComputer():
 class BaseComputer:
     """Class to perform basic computations during simulation of diffusion
     equation."""
+
     def __init__(self, function_dict: Dict[str, Callable]):
         self.functions = function_dict
         self.initiated = False
@@ -24,16 +25,16 @@ class BaseComputer:
         timevec = time.as_vector()
         self.values = {
             "time": timevec,
-            **{key: np.zeros(len(timevec)) for key in self.functions}
+            **{key: np.zeros(len(timevec)) for key in self.functions},
         }
 
     def init_from_vector(self, timevec: np.ndarray):
         self.initiated = True
         self.values = {
             "time": timevec,
-            **{key: np.zeros(len(timevec)) for key in self.functions}
+            **{key: np.zeros(len(timevec)) for key in self.functions},
         }
-    
+
     def reset(self, time: TimeKeeper) -> None:
         self._create_value_dict(time)
 

@@ -176,4 +176,3 @@ def flat(pool):
         else:
             res += flat(v)
     return res
-

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "panta-rhei"
-version = "0.6.0"
+version = "0.6.1"
 description = "Miscellaneous fenics/dolfin utilities that are used in various projects."
 authors = [
   { name="Jørgen Riseth", email="jnriseth@gmail.com" },

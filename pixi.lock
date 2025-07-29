@@ -1705,7 +1705,7 @@ packages:
 - pypi: ./
   name: panta-rhei
   version: 0.7.0
-  sha256: 6c71db03ea9a3a406d41bfd290512acc4c8e191ea1bc29ff22adc40f05bc991a
+  sha256: 6d959a024cd0c43e7d199d28b94083fb77425d227a53e99c212eac034207d47e
   requires_dist:
   - loguru
   - sympy

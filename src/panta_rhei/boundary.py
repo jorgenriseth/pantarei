@@ -5,8 +5,8 @@ import dolfin as df
 from dolfin import inner
 from dolfin.function.argument import Argument as Argument
 
-from pantarei.domain import Domain
-from pantarei.utils import FormCoefficient
+from panta_rhei.domain import Domain
+from panta_rhei.utils import FormCoefficient
 
 BoundaryTag: TypeAlias = int | Literal["everywhere"]
 

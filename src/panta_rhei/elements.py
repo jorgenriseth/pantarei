@@ -1,5 +1,5 @@
-from ufl import Cell
-from ufl.finiteelement import FiniteElement, MixedElement, VectorElement
+from ufl_legacy import Cell
+from ufl_legacy.finiteelement import FiniteElement, MixedElement, VectorElement
 
 
 class TaylorHood(MixedElement):

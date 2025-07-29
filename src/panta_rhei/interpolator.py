@@ -3,9 +3,9 @@ from typing import Callable
 
 import dolfin as df
 import numpy as np
-from ufl.algebra import Sum
+from ufl_legacy.algebra import Sum
 
-from pantarei.io_utils import read_function, read_timevector
+from panta_rhei.io_utils import read_function, read_timevector
 
 
 def vectordata_interpolator(

@@ -10,7 +10,7 @@ import SVMTK as svmtk
 from dolfin import HDF5File, Mesh, MeshFunction, MeshValueCollection, XDMFFile
 from loguru import logger
 
-from pantarei.domain import Domain
+from panta_rhei.domain import Domain
 
 
 StrPath: TypeAlias = Union[str, Path]
@@ -18,7 +18,7 @@ StrPath: TypeAlias = Union[str, Path]
 
 def create_tmpdir(tmpdir: Optional[StrPath]) -> Path:
     if tmpdir is None:
-        tmppath = Path(f"/tmp/pantarei/{uuid.uuid4()}")
+        tmppath = Path(f"/tmp/panta_rhei/{uuid.uuid4()}")
     else:
         tmppath = Path(tmpdir)
     tmppath.mkdir(exist_ok=True, parents=True)
@@ -52,9 +52,9 @@ def stl2mesh(
 ):
     """Creates an svmtk-domain from a set of stl-files, and stores as a meshio .mesh-file. May optionally remove
     sepecifc subdomains, or add subdomain markers."""
-    assert isinstance(
-        stlfiles, list
-    ), "stlfiles should be list. (single surface may be wrapped as length 1 list)."
+    assert isinstance(stlfiles, list), (
+        "stlfiles should be list. (single surface may be wrapped as length 1 list)."
+    )
     surfaces = [svmtk.Surface(str(stl)) for stl in stlfiles]
     if subdomain_map is not None:
         domain = svmtk.Domain(surfaces, subdomain_map)

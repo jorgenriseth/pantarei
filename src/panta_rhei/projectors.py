@@ -15,9 +15,9 @@ from dolfin import (
     project,
     solve,
 )
-from ufl import Coefficient
+from ufl_legacy import Coefficient
 
-from pantarei.utils import assign_mixed_function
+from panta_rhei.utils import assign_mixed_function
 
 
 def smoothing_projector(h1_weight):

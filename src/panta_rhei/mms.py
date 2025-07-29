@@ -1,8 +1,8 @@
 import dolfin as df
 import numpy as np
 import sympy
-from pantarei.domain import Domain
-from pantarei.utils import FormCoefficient
+from panta_rhei.domain import Domain
+from panta_rhei.utils import FormCoefficient
 
 # 3D-mesh = df.BoxMesh(df.Point(-1, -1, -1), df.Point(1, 1, 1), 10, 10, 10)
 
@@ -100,7 +100,7 @@ class SympyDiffOperators:
 
 
 def sp_robin_boundary(u, flux, normals, k):
-    return {tag: (u - 1.0 / k * np.dot(flux, n)) for tag, n in normals.items()}
+    return {tag: (k * u - np.dot(flux, n)) for tag, n in normals.items()}
 
 
 def sp_neumann_boundary(u, flux, normals):
@@ -114,12 +114,10 @@ def mms_placeholder():
 
 
 def expr(expr, degree, subs=None, **kwargs) -> FormCoefficient:
-    if subs is None:
+    if subs is None:  # Needed as sympy subs don't like indexing. Fixed below
         subs = {"x": ("x0", "x[0]"), "y": ("x1", "x[1]"), "z": ("x2", "x[2]")}
-    print(sympy.printing.ccode(expr))
     code_expr = expr.subs({sym: sym_subs[0] for sym, sym_subs in subs.items()})
     code = sympy.printing.ccode(code_expr)
     for sym_subs in subs.values():
         code = code.replace(sym_subs[0], sym_subs[1])
-
     return df.Expression(code, degree=degree, **kwargs)

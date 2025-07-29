@@ -5,15 +5,15 @@ from functools import partial
 from typing import Callable, List, Optional, TypeAlias
 
 import dolfin as df
-from ufl.finiteelement.finiteelementbase import FiniteElementBase
+from ufl_legacy.finiteelement.finiteelementbase import FiniteElementBase
 
-import pantarei as pr
-from pantarei.boundary import BoundaryData, process_dirichlet
-from pantarei.computers import BaseComputer
-from pantarei.fenicsstorage import FenicsStorage
-from pantarei.forms import StationaryForm, TimedependentForm
-from pantarei.timekeeper import TimeKeeper
-from pantarei.utils import CoefficientsDict, set_optional, single_logger
+import panta_rhei as pr
+from panta_rhei.boundary import BoundaryData, process_dirichlet
+from panta_rhei.computers import BaseComputer
+from panta_rhei.fenicsstorage import FenicsStorage
+from panta_rhei.forms import StationaryForm, TimedependentForm
+from panta_rhei.timekeeper import TimeKeeper
+from panta_rhei.utils import CoefficientsDict, set_optional, single_logger
 
 logger = logging.getLogger(__name__)
 log = partial(single_logger, logger)

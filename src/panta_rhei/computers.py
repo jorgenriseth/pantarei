@@ -3,7 +3,7 @@ from typing import Callable, Dict
 import numpy as np
 from dolfin import Function
 
-from pantarei.timekeeper import TimeKeeper
+from panta_rhei.timekeeper import TimeKeeper
 
 
 class NullComputer:

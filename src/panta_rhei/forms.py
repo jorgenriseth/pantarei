@@ -3,9 +3,9 @@ from typing import Callable, Dict, List, TypeAlias
 import dolfin as df
 from dolfin import grad, inner
 
-from pantarei.boundary import BoundaryData, process_boundary_forms
-from pantarei.timekeeper import TimeDelta
-from pantarei.utils import CoefficientsDict
+from panta_rhei.boundary import BoundaryData, process_boundary_forms
+from panta_rhei.timekeeper import TimeDelta
+from panta_rhei.utils import CoefficientsDict
 
 StationaryForm: TypeAlias = Callable[
     [df.FunctionSpace, CoefficientsDict, List[BoundaryData]], df.Form

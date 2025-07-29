@@ -2,12 +2,12 @@ import logging
 from typing import Callable, Dict, Optional, TypeAlias, TypeVar
 
 import dolfin as df
-import ufl
+import ufl_legacy
 import numpy as np
 
 DolfinMatrix: TypeAlias = df.cpp.la.Matrix
 DolfinVector: TypeAlias = df.cpp.la.Vector
-FormCoefficient: TypeAlias = float | ufl.Coefficient
+FormCoefficient: TypeAlias = float | ufl_legacy.Coefficient | df.Expression
 CoefficientsDict: TypeAlias = Dict[str, FormCoefficient]
 T = TypeVar("T")
 

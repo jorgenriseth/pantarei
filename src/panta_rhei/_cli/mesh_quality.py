@@ -5,7 +5,7 @@ from typing import Optional
 
 import dolfin as df
 
-import pantarei as pr
+import panta_rhei as pr
 
 
 def mesh_info(mesh: df.Mesh) -> dict[str, int | float]:

@@ -4,11 +4,11 @@ from typing import Callable, List, Optional, Union
 
 import dolfin as df
 import numpy as np
-import ufl
+import ufl_legacy
 
-from pantarei.domain import Domain
-from pantarei.io_utils import close as hdfclose
-from pantarei.io_utils import (
+from panta_rhei.domain import Domain
+from panta_rhei.io_utils import close as hdfclose
+from panta_rhei.io_utils import (
     read_checkpoint,
     read_checkpoint_time,
     read_domain,
@@ -20,7 +20,7 @@ from pantarei.io_utils import (
     write_element,
     write_function,
 )
-from pantarei.utils import print_progress
+from panta_rhei.utils import print_progress
 
 logger = logging.getLogger(__name__)
 StrPath = str | Path
@@ -48,7 +48,7 @@ class FenicsStorage:
     def write_element(self, funcname: str, function_space: df.FunctionSpace) -> str:
         return write_element(self.hdf, funcname, function_space)
 
-    def read_element(self, function_name: str) -> ufl.FiniteElementBase:
+    def read_element(self, function_name: str) -> ufl_legacy.FiniteElementBase:
         return read_element(self.hdf, function_name)
 
     def write_function(self, function: df.Function, name: str, overwrite: bool = False):

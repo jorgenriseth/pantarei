@@ -4,11 +4,11 @@ from typing import Optional
 import dolfin as df
 import h5py
 import numpy as np
-import ufl
+import ufl_legacy
 
 from loguru import logger
 
-from pantarei.domain import Domain
+from panta_rhei.domain import Domain
 
 
 def write_domain(hdf: df.HDF5File, domain: df.Mesh) -> None:
@@ -39,7 +39,7 @@ def write_element(
     return signature
 
 
-def read_element(hdf: df.HDF5File, function_name: str) -> ufl.FiniteElementBase:
+def read_element(hdf: df.HDF5File, function_name: str) -> ufl_legacy.FiniteElementBase:
     signature = hdf.attributes(function_name)["signature"]
     return read_signature(signature)
 
@@ -96,7 +96,7 @@ def close(hdf: df.HDF5File) -> None:
     worldsize = df.MPI.comm_world.size
     if worldsize > 1:
         logger.debug(
-            f"Process {df.MPI.comm_world.rank}/{worldsize-1} waiting for other\
+            f"Process {df.MPI.comm_world.rank}/{worldsize - 1} waiting for other\
                     processes before closing file."
         )
     hdf.close()
@@ -127,5 +127,6 @@ def read_signature(signature: str):
         tetrahedron,
         triangle,
     )
+    from ufl_legacy import Cell
 
     return eval(signature)

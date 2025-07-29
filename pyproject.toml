@@ -27,5 +27,5 @@ panta_rhei = { path = ".", editable = true }
 
 [tool.pixi.dependencies]
 fenics = ">=2019.1.0,<2020"
-svmtk = "<2"
+svmtk = ">=1.3.0"
 setuptools = "<80"

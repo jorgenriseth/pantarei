@@ -1,6 +1,6 @@
 [project]
 name = "panta-rhei"
-version = "0.7.1.a"
+version = "0.7.2"
 requires-python = ">=3.10"
 description = "Miscellaneous fenics/dolfin utilities that are used in various projects."
 authors = [{ name = "Jørgen Riseth", email = "jnriseth@gmail.com" }]

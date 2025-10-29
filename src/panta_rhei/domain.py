@@ -18,5 +18,5 @@ def transfer_meshfunction(
     newmesh: df.Mesh, meshfunc: df.MeshFunction
 ) -> df.MeshFunction:
     newtags = df.MeshFunction("size_t", newmesh, dim=meshfunc.dim())  # type: ignore
-    newtags.set_values(meshfunc)  # type: ignore
+    newtags.set_values(meshfunc.array())  # type: ignore
     return newtags
